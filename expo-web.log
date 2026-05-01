@@ -1,0 +1,34 @@
+
+> gym-tunisia@1.0.0 web
+> expo start --web --port 8082
+
+Starting project at C:\Users\Dhia\gym-tunisia-codex-fix
+React Compiler enabled
+Metro is running in CI mode, reloads are disabled. Remove CI=true to enable watch mode.
+Starting Metro Bundler
+Waiting on http://localhost:8082
+Logs for your project will appear below.
+Web node_modules\expo-router\entry.js ▓░░░░░░░░░░░░░░░  9.8% ( 5/16)
+λ node_modules\expo-router\node\render.js ░░░░░░░░░░░░░░░░  5.2% ( 10/106)
+Web node_modules\expo-router\entry.js ▓▓░░░░░░░░░░░░░░ 17.8% (19/45)
+λ node_modules\expo-router\node\render.js ▓▓░░░░░░░░░░░░░░ 12.7% ( 86/241)
+Web node_modules\expo-router\entry.js ▓▓░░░░░░░░░░░░░░ 17.8% ( 99/237)
+λ node_modules\expo-router\node\render.js ▓▓▓░░░░░░░░░░░░░ 22.7% (174/369)
+Web node_modules\expo-router\entry.js ▓▓▓░░░░░░░░░░░░░ 18.8% (114/263)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓░░░░░░░░░░ 42.3% (309/475)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓░░░░░░░░░░ 38.6% (244/403)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 69.7% (475/569)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 73.8% (531/618)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 80.5% (601/673)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 84.8% (684/791)
+λ node_modules\expo-router\node\render.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 87.1% (753/807)
+λ Bundled 25843ms node_modules\expo-router\node\render.js (867 modules)
+Web Bundled 26529ms node_modules\expo-router\entry.js (857 modules)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓░░░░░░░░░░░ 36.0% (21/43)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓░░░░░░░░░░░ 36.0% (279/469)
+Web node_modules\expo-router\entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 91.1% (694/727)
+Web Bundled 10244ms node_modules\expo-router\entry.js (858 modules)
+ LOG  [web] Logs will appear in the browser console
+Web node_modules\expo-router\entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+λ Bundled 87ms node_modules\expo-router\node\render.js (1 module)
+Web Bundled 783ms node_modules\expo-router\entry.js (1 module)
