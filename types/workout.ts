@@ -82,6 +82,26 @@ export type NutritionTargets = {
   fat: number;
 };
 
+export type WeightEntry = {
+  id: string;
+  date: string;
+  weight: number;
+};
+
+export type NutritionDay = {
+  date: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+};
+
+export type HabitStreaks = {
+  workouts: number;
+  calories: number;
+  protein: number;
+};
+
 export type UserAccount = {
   id: string;
   name: string;

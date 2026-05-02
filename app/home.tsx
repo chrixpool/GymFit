@@ -190,6 +190,23 @@ export default function Home() {
           ) : null}
         </View>
 
+        {targets && caloriePercent < 70 ? (
+          <Pressable accessibilityRole="button" onPress={() => router.push('/nutrition')} style={styles.coachNudge}>
+            <Ionicons name="notifications-outline" size={20} color={colors.warning} />
+            <View style={styles.coachNudgeText}>
+              <Text style={styles.coachNudgeTitle}>Calorie target is behind</Text>
+              <Text style={styles.coachNudgeCopy}>You are at {Math.round(caloriePercent)}% today. Log a meal or use a Tunisian budget idea.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+          </Pressable>
+        ) : null}
+
+        <Pressable accessibilityRole="button" onPress={() => router.push('/reminders')} style={styles.wideButton}>
+          <Ionicons name="notifications-outline" size={20} color={colors.text} />
+          <Text style={styles.wideButtonText}>Coach reminders</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
+        </Pressable>
+
         <Pressable accessibilityRole="button" onPress={() => router.push('/progress')} style={styles.wideButton}>
           <Ionicons name="analytics-outline" size={20} color={colors.text} />
           <Text style={styles.wideButtonText}>Progress dashboard</Text>
@@ -286,6 +303,10 @@ const styles = StyleSheet.create({
   macroPill: { flex: 1, backgroundColor: colors.input, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
   macroValue: { fontWeight: '800', fontSize: 13 },
   macroLabel: { color: colors.muted, fontSize: 11, marginTop: 2 },
+  coachNudge: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: `${colors.warning}66`, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  coachNudgeText: { flex: 1 },
+  coachNudgeTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  coachNudgeCopy: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 3 },
   wideButton: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
   wideButtonText: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
 });

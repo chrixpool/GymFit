@@ -65,6 +65,13 @@ export default function Layout() {
           headerLeft: () => <HeaderButton name="chevron-back" onPress={() => router.back()} />,
         }}
       />
+      <Stack.Screen
+        name="reminders"
+        options={{
+          title: 'Reminders',
+          headerLeft: () => <HeaderButton name="chevron-back" onPress={() => router.back()} />,
+        }}
+      />
       <Stack.Screen name="explore" options={{ title: 'Explore' }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Gym Tunisia' }} />
     </Stack>

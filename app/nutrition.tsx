@@ -5,7 +5,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import type { KeyboardTypeOptions } from 'react-native';
 
 import { AppTheme } from '../constants/theme';
-import { MEAL_TEMPLATES } from '../data/meals';
+import { getBudgetMealIdeas, MEAL_CATEGORY_LABELS, MEAL_TEMPLATES, TunisianMealCategory, TunisianMealTemplate } from '../data/meals';
 import { FoodLookupResult, lookupFoodNutrition } from '../lib/foodLookup';
 import { addMeal, addQuickMeal, deleteMeal, getTodayMeals, updateMeal } from '../lib/nutrition';
 import { getNutritionStrategy, getNutritionTargets } from '../lib/nutritionEngine';
@@ -38,6 +38,10 @@ export default function Nutrition() {
   const [targetDraft, setTargetDraft] = useState(EMPTY_TARGET_DRAFT);
   const [targetError, setTargetError] = useState('');
   const [error, setError] = useState('');
+  const [profileGoal, setProfileGoal] = useState<'lose weight' | 'gain muscle' | 'maintain' | 'body strength'>('maintain');
+  const [mealCategory, setMealCategory] = useState<TunisianMealCategory | 'all'>('all');
+  const [budgetDraft, setBudgetDraft] = useState('10');
+  const [budgetIdeas, setBudgetIdeas] = useState<TunisianMealTemplate[]>([]);
 
   const load = useCallback(async () => {
     const [todayMeals, profile, weeklyProgress, progress] = await Promise.all([getTodayMeals(), getProfile(), getWeeklyProgress(), getProgress()]);
@@ -56,6 +60,7 @@ export default function Nutrition() {
     })) : null;
 
     setMeals(todayMeals);
+    if (profile) setProfileGoal(profile.goal);
     setNutritionMode(trainingDay ? 'training' : 'rest');
     setStrategy(profile ? getNutritionStrategy(profile.goal, trainingDay) : '');
     setTargets(resolvedTargets);
@@ -191,6 +196,12 @@ export default function Nutrition() {
   };
 
   const percent = targets ? Math.min(100, Math.round((totals.calories / targets.calories) * 100)) : 0;
+  const visibleTemplates = MEAL_TEMPLATES.filter((meal) => mealCategory === 'all' || meal.category === mealCategory);
+
+  const handleBudgetIdeas = () => {
+    const parsedBudget = Number.parseFloat(budgetDraft);
+    setBudgetIdeas(getBudgetMealIdeas(Number.isFinite(parsedBudget) ? parsedBudget : 0, profileGoal));
+  };
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -249,9 +260,48 @@ export default function Nutrition() {
       ) : null}
 
       <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View>
+            <Text style={styles.cardTitle}>Tunisian meal engine</Text>
+            <Text style={styles.cardCopy}>Cheap bulking, Ramadan, and street-food macros built for local habits.</Text>
+          </View>
+          <Text style={styles.badge}>DT</Text>
+        </View>
+        <View style={styles.segmentedControl}>
+          {(Object.keys(MEAL_CATEGORY_LABELS) as (TunisianMealCategory | 'all')[]).map((item) => (
+            <Pressable key={item} accessibilityRole="button" onPress={() => setMealCategory(item)} style={[styles.segment, mealCategory === item && styles.segmentActive]}>
+              <Text style={[styles.segmentText, mealCategory === item && styles.segmentTextActive]}>{MEAL_CATEGORY_LABELS[item]}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.budgetRow}>
+          <Field label="Budget" placeholder="10 DT" value={budgetDraft} onChangeText={setBudgetDraft} keyboardType="decimal-pad" />
+          <Pressable accessibilityRole="button" onPress={handleBudgetIdeas} style={styles.budgetButton}>
+            <Ionicons name="sparkles-outline" size={18} color={colors.text} />
+            <Text style={styles.budgetButtonText}>Ideas</Text>
+          </Pressable>
+        </View>
+        {budgetIdeas.length ? (
+          <View style={styles.ideaStrip}>
+            {budgetIdeas.map((meal) => (
+              <Pressable
+                key={`idea-${meal.name}`}
+                accessibilityRole="button"
+                onPress={async () => {
+                  await addQuickMeal(meal);
+                  load();
+                }}
+                style={styles.ideaCard}
+              >
+                <Text style={styles.ideaName}>{meal.name}</Text>
+                <Text style={styles.ideaMeta}>{meal.costDinars} DT | {meal.protein}g protein</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         <Text style={styles.cardTitle}>Quick add</Text>
         <View style={styles.templateGrid}>
-          {MEAL_TEMPLATES.map((meal) => (
+          {visibleTemplates.map((meal) => (
             <Pressable
               key={meal.name}
               accessibilityRole="button"
@@ -263,6 +313,7 @@ export default function Nutrition() {
             >
               <Text style={styles.templateName}>{meal.name}</Text>
               <Text style={styles.templateMeta}>{meal.calories} kcal | P {meal.protein}g | C {meal.carbs}g | F {meal.fat}g</Text>
+              <Text style={styles.templateTags}>{meal.costDinars} DT | {meal.tags.join(' | ')}</Text>
             </Pressable>
           ))}
         </View>
@@ -406,11 +457,20 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 20 },
   strategyText: { color: colors.info, fontSize: 12, lineHeight: 18, fontWeight: '700' },
+  badge: { color: colors.text, backgroundColor: colors.surfaceRaised, borderRadius: 8, overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 6, fontSize: 12, fontWeight: '800' },
   iconButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
   templateGrid: { gap: 10 },
   templateCard: { backgroundColor: colors.input, borderRadius: 12, padding: 13, borderWidth: 1, borderColor: colors.border },
   templateName: { color: colors.text, fontSize: 15, fontWeight: '800' },
   templateMeta: { color: colors.muted, fontSize: 12, marginTop: 4 },
+  templateTags: { color: colors.info, fontSize: 11, fontWeight: '700', marginTop: 5 },
+  budgetRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
+  budgetButton: { minWidth: 98, backgroundColor: colors.primary, borderRadius: 12, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 12 },
+  budgetButtonText: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  ideaStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  ideaCard: { flexGrow: 1, flexBasis: '47%', backgroundColor: colors.surfaceRaised, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border },
+  ideaName: { color: colors.text, fontSize: 13, fontWeight: '800' },
+  ideaMeta: { color: colors.muted, fontSize: 11, marginTop: 4 },
   segmentedControl: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   segment: { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border },
   segmentActive: { backgroundColor: colors.primary, borderColor: colors.primary },
