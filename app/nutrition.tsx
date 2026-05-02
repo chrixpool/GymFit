@@ -261,7 +261,7 @@ export default function Nutrition() {
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View>
+          <View style={styles.cardHeaderText}>
             <Text style={styles.cardTitle}>Tunisian meal engine</Text>
             <Text style={styles.cardCopy}>Cheap bulking, Ramadan, and street-food macros built for local habits.</Text>
           </View>
@@ -275,7 +275,9 @@ export default function Nutrition() {
           ))}
         </View>
         <View style={styles.budgetRow}>
-          <Field label="Budget" placeholder="10 DT" value={budgetDraft} onChangeText={setBudgetDraft} keyboardType="decimal-pad" />
+          <View style={styles.budgetField}>
+            <Field label="Budget" placeholder="10 DT" value={budgetDraft} onChangeText={setBudgetDraft} keyboardType="decimal-pad" />
+          </View>
           <Pressable accessibilityRole="button" onPress={handleBudgetIdeas} style={styles.budgetButton}>
             <Ionicons name="sparkles-outline" size={18} color={colors.text} />
             <Text style={styles.budgetButtonText}>Ideas</Text>
@@ -454,6 +456,7 @@ const styles = StyleSheet.create({
   macroLabel: { color: colors.muted, fontSize: 12, fontWeight: '700', marginTop: 4 },
   card: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  cardHeaderText: { flex: 1, minWidth: 0 },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 20 },
   strategyText: { color: colors.info, fontSize: 12, lineHeight: 18, fontWeight: '700' },
@@ -465,7 +468,8 @@ const styles = StyleSheet.create({
   templateMeta: { color: colors.muted, fontSize: 12, marginTop: 4 },
   templateTags: { color: colors.info, fontSize: 11, fontWeight: '700', marginTop: 5 },
   budgetRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end' },
-  budgetButton: { minWidth: 98, backgroundColor: colors.primary, borderRadius: 12, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 12 },
+  budgetField: { flex: 1, minWidth: 0 },
+  budgetButton: { width: 110, flexShrink: 0, backgroundColor: colors.primary, borderRadius: 12, minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 12 },
   budgetButtonText: { color: colors.text, fontSize: 14, fontWeight: '800' },
   ideaStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   ideaCard: { flexGrow: 1, flexBasis: '47%', backgroundColor: colors.surfaceRaised, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border },

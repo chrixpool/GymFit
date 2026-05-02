@@ -129,7 +129,7 @@ export default function Plan() {
         <View style={styles.heroStats}>
           <Stat label="Days" value={`${plan.daysPerWeek}/week`} />
           <Stat label="Week" value={`${plan.currentWeek}`} />
-          <Stat label="Today" value={today} />
+          <Stat label="Today" value={today.slice(5)} />
         </View>
         <Text style={styles.coachNote}>{plan.progressionNote}</Text>
         <Text style={styles.coachNote}>{plan.intensityNote}</Text>
@@ -385,11 +385,11 @@ const styles = StyleSheet.create({
   heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   heroIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   levelBadge: { color: colors.text, backgroundColor: colors.surfaceRaised, borderRadius: 8, overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 6, fontSize: 12, fontWeight: '800' },
-  title: { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 27, lineHeight: 33, fontWeight: '800' },
   subtitle: { color: colors.muted, fontSize: 14, lineHeight: 21 },
   heroStats: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  statPill: { flex: 1, backgroundColor: colors.input, borderRadius: 12, padding: 12 },
-  statLabel: { color: colors.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+  statPill: { flex: 1, minWidth: 0, backgroundColor: colors.input, borderRadius: 12, padding: 12 },
+  statLabel: { color: colors.muted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6 },
   statValue: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: 4 },
   dayCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 12 },
   dayCardComplete: { borderColor: `${colors.success}88` },

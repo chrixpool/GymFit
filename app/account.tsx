@@ -157,7 +157,7 @@ export default function Account() {
               <ModeButton label="Create" active={mode === 'signUp'} onPress={() => setMode('signUp')} />
             </View>
 
-            {mode === 'signUp' ? <Field label="Name" placeholder="Dhia" value={name} onChangeText={setName} /> : null}
+            {mode === 'signUp' ? <Field label="Name" placeholder="Your Name" value={name} onChangeText={setName} /> : null}
             <Field label="Email" placeholder="you@example.com" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
             <Field label="Password" placeholder="At least 6 characters" value={password} onChangeText={setPassword} secureTextEntry />
 

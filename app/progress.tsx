@@ -115,14 +115,14 @@ export default function Progress() {
         <Text style={styles.subtitle}>Charts, targets, and habit streaks that show whether the plan is actually working.</Text>
         <View style={styles.metricRow}>
           <Metric label="Week" value={`${weekly?.completed ?? 0}/${plannedDays}`} color={colors.success} />
-          <Metric label="Consistency" value={`${consistencyPercent}%`} color={colors.info} />
-          <Metric label="Exercises" value={`${doneExercises}/${totalExercises}`} color={colors.warning} />
+          <Metric label="Consist." value={`${consistencyPercent}%`} color={colors.info} />
+          <Metric label="Done" value={`${doneExercises}/${totalExercises}`} color={colors.warning} />
         </View>
       </View>
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View>
+          <View style={styles.cardHeaderText}>
             <Text style={styles.cardTitle}>Habit streaks</Text>
             <Text style={styles.cardCopy}>Separate streaks for the behaviors that drive results.</Text>
           </View>
@@ -137,7 +137,7 @@ export default function Progress() {
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View>
+          <View style={styles.cardHeaderText}>
             <Text style={styles.cardTitle}>Weight trend</Text>
             <Text style={styles.cardCopy}>{weightEntries.length ? 'Latest check-ins synced to Supabase.' : 'Log weight to start the chart.'}</Text>
           </View>
@@ -163,7 +163,7 @@ export default function Progress() {
 
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <View>
+          <View style={styles.cardHeaderText}>
             <Text style={styles.cardTitle}>Calories vs target</Text>
             <Text style={styles.cardCopy}>Last 7 days, compared to the current adaptive target.</Text>
           </View>
@@ -258,11 +258,11 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
   const range = Math.max(1, max - min);
 
   return (
-    <View style={styles.weightChart}>
+    <View style={[styles.weightChart, entries.length === 1 && styles.weightChartSingle]}>
       {entries.map((entry) => {
         const height = 34 + ((entry.weight - min) / range) * 82;
         return (
-          <View key={entry.id} style={styles.weightPointWrap}>
+          <View key={entry.id} style={[styles.weightPointWrap, entries.length === 1 && styles.weightPointWrapSingle]}>
             <View style={styles.weightRail}>
               <View style={[styles.weightPoint, { height }]} />
             </View>
@@ -307,26 +307,29 @@ const styles = StyleSheet.create({
   metricRow: { flexDirection: 'row', gap: 10 },
   metricCard: { flex: 1, backgroundColor: colors.input, borderRadius: 12, padding: 12 },
   metricValue: { fontSize: 19, fontWeight: '800' },
-  metricLabel: { color: colors.muted, fontSize: 11, fontWeight: '800', marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 },
+  metricLabel: { color: colors.muted, fontSize: 10, fontWeight: '800', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.4 },
   card: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  cardHeaderText: { flex: 1, minWidth: 0 },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
   badge: { color: colors.text, backgroundColor: colors.surfaceRaised, borderRadius: 8, overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 6, fontSize: 12, fontWeight: '800' },
   streakGrid: { flexDirection: 'row', gap: 10 },
-  streakCard: { flex: 1, backgroundColor: colors.input, borderRadius: 12, padding: 12, minHeight: 112 },
-  streakIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  streakValue: { color: colors.text, fontSize: 28, fontWeight: '800', marginTop: 10 },
-  streakLabel: { color: colors.muted, fontSize: 12, fontWeight: '800' },
+  streakCard: { flex: 1, backgroundColor: colors.input, borderRadius: 12, padding: 11, minHeight: 96 },
+  streakIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  streakValue: { color: colors.text, fontSize: 26, fontWeight: '800', marginTop: 8 },
+  streakLabel: { color: colors.muted, fontSize: 11, fontWeight: '800' },
   weightRow: { flexDirection: 'row', gap: 10 },
-  weightInput: { flex: 1, backgroundColor: colors.input, borderRadius: 12, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
-  saveButton: { backgroundColor: colors.primary, borderRadius: 12, minHeight: 48, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  weightInput: { flex: 1, minWidth: 0, backgroundColor: colors.input, borderRadius: 12, borderWidth: 1, borderColor: colors.border, color: colors.text, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15 },
+  saveButton: { width: 88, flexShrink: 0, backgroundColor: colors.primary, borderRadius: 12, minHeight: 48, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveButtonText: { color: colors.text, fontSize: 14, fontWeight: '800' },
   errorText: { color: colors.primary, fontSize: 12, fontWeight: '800' },
   chartEmpty: { minHeight: 136, backgroundColor: colors.input, borderRadius: 12, alignItems: 'center', justifyContent: 'center', gap: 8 },
   emptyText: { color: colors.muted, fontSize: 13, fontWeight: '700' },
   weightChart: { minHeight: 168, flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingTop: 8 },
+  weightChartSingle: { justifyContent: 'center' },
   weightPointWrap: { flex: 1, alignItems: 'center', gap: 5 },
+  weightPointWrapSingle: { flex: 0, width: 112 },
   weightRail: { height: 118, width: '100%', backgroundColor: colors.input, borderRadius: 10, alignItems: 'center', justifyContent: 'flex-end', overflow: 'hidden' },
   weightPoint: { width: '64%', borderRadius: 10, backgroundColor: colors.info },
   calorieChart: { height: 176, flexDirection: 'row', alignItems: 'flex-end', gap: 8 },

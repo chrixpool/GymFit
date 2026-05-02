@@ -44,11 +44,11 @@ function ExerciseRowComponent({ exercise, done, example, onToggle }: ExerciseRow
             {primaryCue ? <Text style={styles.exerciseCue}>{primaryCue}</Text> : null}
           </View>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={handleToggleDemo} style={styles.demoButton}>
-          <Ionicons name={showDemo ? 'chevron-up' : 'play-circle-outline'} size={18} color={colors.info} />
-          <Text style={styles.demoButtonText}>{showDemo ? 'Hide' : 'Show Demo'}</Text>
-        </Pressable>
       </View>
+      <Pressable accessibilityRole="button" onPress={handleToggleDemo} style={styles.demoButton}>
+        <Ionicons name={showDemo ? 'chevron-up' : 'play-circle-outline'} size={18} color={colors.info} />
+        <Text style={styles.demoButtonText}>{showDemo ? 'Hide demo' : 'Show demo'}</Text>
+      </Pressable>
 
       {showDemo ? (
         <Suspense fallback={<VideoFallback />}>
@@ -73,13 +73,13 @@ export const ExerciseRow = memo(ExerciseRowComponent);
 const styles = StyleSheet.create({
   exerciseRow: { gap: 12, padding: 12, borderRadius: 12, backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border },
   exerciseRowDone: { borderColor: `${colors.success}66`, backgroundColor: '#102016' },
-  exerciseTopRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  exerciseTopRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   exerciseToggle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   exerciseText: { flex: 1 },
   exerciseName: { color: colors.text, fontSize: 15, fontWeight: '800' },
   exerciseMeta: { color: colors.muted, fontSize: 12, marginTop: 3 },
   exerciseCue: { color: colors.subtle, fontSize: 11, lineHeight: 16, marginTop: 4 },
-  demoButton: { minWidth: 98, minHeight: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, backgroundColor: colors.surfaceRaised, paddingHorizontal: 10 },
+  demoButton: { alignSelf: 'flex-start', minHeight: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, backgroundColor: colors.surfaceRaised, paddingHorizontal: 14 },
   demoButtonText: { color: colors.text, fontSize: 12, fontWeight: '800' },
   videoFallback: { aspectRatio: 16 / 9, borderRadius: 12, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center', gap: 8 },
   videoFallbackText: { color: colors.muted, fontSize: 12, fontWeight: '800' },
