@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppTheme } from '../constants/theme';
+import { findExerciseExample, getExerciseDemoUrl } from '../data/exerciseExamples';
 import { getCurrentAccount } from '../lib/accounts';
 import { toDateKey } from '../lib/date';
 import { getProfile } from '../lib/profile';
@@ -112,14 +113,21 @@ export default function Plan() {
 
             {day.exercises.map((exercise) => {
               const done = Boolean(entry?.exercises.find((item) => item.name === exercise.name)?.done);
+              const example = findExerciseExample(exercise.name);
               return (
-                <Pressable key={exercise.name} accessibilityRole="button" onPress={() => handleToggle(day, exercise.name)} style={[styles.exerciseRow, done && styles.exerciseRowDone]}>
-                  <Ionicons name={done ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={done ? colors.success : colors.subtle} />
-                  <View style={styles.exerciseText}>
-                    <Text style={styles.exerciseName}>{exercise.name}</Text>
-                    <Text style={styles.exerciseMeta}>{exercise.sets} sets x {exercise.reps} | {exercise.restSeconds}s rest</Text>
-                  </View>
-                </Pressable>
+                <View key={exercise.name} style={[styles.exerciseRow, done && styles.exerciseRowDone]}>
+                  <Pressable accessibilityRole="button" onPress={() => handleToggle(day, exercise.name)} style={styles.exerciseToggle}>
+                    <Ionicons name={done ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={done ? colors.success : colors.subtle} />
+                    <View style={styles.exerciseText}>
+                      <Text style={styles.exerciseName}>{exercise.name}</Text>
+                      <Text style={styles.exerciseMeta}>{exercise.sets} sets x {exercise.reps} | {exercise.restSeconds}s rest</Text>
+                      {example ? <Text style={styles.exerciseCue}>{example.category} | {example.muscles}</Text> : null}
+                    </View>
+                  </Pressable>
+                  <Pressable accessibilityRole="link" hitSlop={10} onPress={() => Linking.openURL(getExerciseDemoUrl(exercise.name))} style={styles.demoButton}>
+                    <Ionicons name="play-circle-outline" size={18} color={colors.info} />
+                  </Pressable>
+                </View>
               );
             })}
           </View>
@@ -164,9 +172,12 @@ const styles = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 4 },
   exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border },
   exerciseRowDone: { borderColor: `${colors.success}66`, backgroundColor: '#102016' },
+  exerciseToggle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   exerciseText: { flex: 1 },
   exerciseName: { color: colors.text, fontSize: 15, fontWeight: '800' },
   exerciseMeta: { color: colors.muted, fontSize: 12, marginTop: 3 },
+  exerciseCue: { color: colors.subtle, fontSize: 11, marginTop: 4 },
+  demoButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
 });
 
 

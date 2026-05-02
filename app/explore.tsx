@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppTheme } from '../constants/theme';
+import { EXERCISE_EXAMPLES, getExerciseDemoUrl } from '../data/exerciseExamples';
 import { MEAL_TEMPLATES } from '../data/meals';
 
 const colors = AppTheme.colors;
@@ -20,7 +21,7 @@ export default function Explore() {
           <Ionicons name="compass-outline" size={24} color={colors.text} />
         </View>
         <Text style={styles.title}>Explore</Text>
-        <Text style={styles.subtitle}>Training notes and quick meal references without the starter-template clutter.</Text>
+        <Text style={styles.subtitle}>Training notes, web exercise demos, and meal references without the starter-template clutter.</Text>
       </View>
 
       <View style={styles.card}>
@@ -34,6 +35,24 @@ export default function Explore() {
               <Text style={styles.rowTitle}>{item.title}</Text>
               <Text style={styles.rowCopy}>{item.copy}</Text>
             </View>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Exercise examples</Text>
+        {EXERCISE_EXAMPLES.slice(0, 8).map((exercise) => (
+          <View key={exercise.name} style={styles.exerciseCard}>
+            <View style={styles.exerciseHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.rowTitle}>{exercise.name}</Text>
+                <Text style={styles.exerciseMeta}>{exercise.category} | {exercise.equipment}</Text>
+              </View>
+              <Pressable accessibilityRole="link" onPress={() => Linking.openURL(getExerciseDemoUrl(exercise.name))} style={styles.demoButton}>
+                <Ionicons name="play-circle-outline" size={20} color={colors.info} />
+              </Pressable>
+            </View>
+            <Text style={styles.rowCopy}>{exercise.cues[0]}</Text>
           </View>
         ))}
       </View>
@@ -65,6 +84,10 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
   rowCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
+  exerciseCard: { backgroundColor: colors.input, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border, gap: 8 },
+  exerciseHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  exerciseMeta: { color: colors.subtle, fontSize: 12, marginTop: 3 },
+  demoButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
   mealRow: { backgroundColor: colors.input, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border },
   mealName: { color: colors.text, fontSize: 15, fontWeight: '800' },
   mealMeta: { color: colors.muted, fontSize: 12, marginTop: 4 },

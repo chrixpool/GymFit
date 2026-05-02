@@ -8,6 +8,7 @@ import { AppTheme } from '../constants/theme';
 import { getCurrentAccount } from '../lib/accounts';
 import { getTodayMeals } from '../lib/nutrition';
 import { getNutritionTargets } from '../lib/nutritionEngine';
+import { getResolvedNutritionTargets } from '../lib/nutritionGoals';
 import { getProfile } from '../lib/profile';
 import { getStreak, getWeeklyProgress } from '../lib/tracking';
 import { MealEntry, NutritionTargets, UserAccount, UserProfile, WeeklyProgress } from '../types/workout';
@@ -68,7 +69,7 @@ export default function Home() {
         setStreak(currentStreak);
         setMeals(todayMeals);
         setWeekly(week);
-        setTargets(savedProfile ? getNutritionTargets(parseFloat(savedProfile.bmi), savedProfile.goal) : null);
+        setTargets(savedProfile ? await getResolvedNutritionTargets(getNutritionTargets(parseFloat(savedProfile.bmi), savedProfile.goal)) : null);
         setLoading(false);
       };
 

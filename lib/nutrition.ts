@@ -44,6 +44,11 @@ export const addMeal = async (meal: Omit<MealEntry, 'id' | 'date'> & { id?: stri
   await saveMeals([nextMeal, ...meals]);
 };
 
+export const updateMeal = async (id: string, updates: Partial<Omit<MealEntry, 'id' | 'date'>>) => {
+  const meals = await getMeals();
+  await saveMeals(meals.map((meal) => (meal.id === id ? normalizeMeal({ ...meal, ...updates, id: meal.id, date: meal.date }) : meal)));
+};
+
 export const addQuickMeal = async (meal: {
   name: string;
   calories: number;
