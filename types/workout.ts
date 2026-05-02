@@ -1,4 +1,6 @@
 export type Goal = 'lose weight' | 'gain muscle' | 'maintain' | 'body strength';
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+export type EquipmentAccess = 'gym' | 'home' | 'mixed';
 
 export type Exercise = {
   name: string;
@@ -18,7 +20,10 @@ export type WeeklyPlan = {
   title: string;
   level: 'Foundation' | 'Balanced' | 'Performance';
   daysPerWeek: number;
+  currentWeek: number;
   summary: string;
+  progressionNote: string;
+  intensityNote: string;
   schedule: Day[];
 };
 
@@ -28,6 +33,10 @@ export type UserProfile = {
   height: string;
   goal: Goal;
   bmi: string;
+  experienceLevel: ExperienceLevel;
+  equipmentAccess: EquipmentAccess;
+  trainingDays: string;
+  programStartDate: string;
 };
 
 export type CompletedExercise = {
@@ -41,6 +50,9 @@ export type CompletedDay = {
   focus: string;
   completed: boolean;
   exercises: CompletedExercise[];
+  effortRating?: number;
+  completedAllSets?: boolean;
+  feedbackAt?: string;
 };
 
 export type WeeklyProgress = {

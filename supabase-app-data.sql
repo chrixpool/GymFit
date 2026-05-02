@@ -3,6 +3,20 @@
 -- workout progress, and editable macro targets from local device storage
 -- to account-scoped Supabase storage.
 
+alter table public.profiles
+  add column if not exists experience_level text not null default 'beginner',
+  add column if not exists equipment_access text not null default 'gym',
+  add column if not exists training_days text not null default '3',
+  add column if not exists program_start_date date not null default current_date;
+
+alter table public.profiles
+  drop constraint if exists profiles_experience_level_check,
+  add constraint profiles_experience_level_check check (experience_level in ('beginner', 'intermediate', 'advanced'));
+
+alter table public.profiles
+  drop constraint if exists profiles_equipment_access_check,
+  add constraint profiles_equipment_access_check check (equipment_access in ('gym', 'home', 'mixed'));
+
 create table if not exists public.meal_entries (
   id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -49,10 +63,18 @@ create table if not exists public.workout_progress (
   focus text not null,
   completed boolean not null default false,
   exercises jsonb not null default '[]'::jsonb,
+  effort_rating integer check (effort_rating between 1 and 5),
+  completed_all_sets boolean,
+  feedback_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (user_id, date, day)
 );
+
+alter table public.workout_progress
+  add column if not exists effort_rating integer check (effort_rating between 1 and 5),
+  add column if not exists completed_all_sets boolean,
+  add column if not exists feedback_at timestamptz;
 
 create index if not exists workout_progress_user_date_idx on public.workout_progress(user_id, date desc);
 

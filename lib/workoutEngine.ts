@@ -1,4 +1,5 @@
-import { Day, Goal, WeeklyPlan } from '../types/workout';
+import { CompletedDay, Day, EquipmentAccess, ExperienceLevel, Goal, WeeklyPlan } from '../types/workout';
+import { getCurrentProgramWeek } from './program';
 
 const BASE_DAYS: Record<Goal, Day[]> = {
   'lose weight': [
@@ -157,10 +158,47 @@ const BASE_DAYS: Record<Goal, Day[]> = {
   ],
 };
 
-const getLevel = (bmi: number): WeeklyPlan['level'] => {
-  if (bmi < 18.5 || bmi >= 30) return 'Foundation';
-  if (bmi >= 25) return 'Balanced';
-  return 'Performance';
+type GeneratePlanOptions = {
+  experienceLevel?: ExperienceLevel;
+  equipmentAccess?: EquipmentAccess;
+  trainingDays?: string | number;
+  programStartDate?: string;
+  progress?: CompletedDay[];
+};
+
+const HOME_EXERCISES: Record<string, string> = {
+  'Bench press': 'Push-up tempo press',
+  'Incline dumbbell press': 'Feet-elevated push-up',
+  'Overhead press': 'Pike push-up',
+  'Cable fly': 'Band fly',
+  'Triceps rope pressdown': 'Band triceps pressdown',
+  'Back squat': 'Goblet squat',
+  'Leg press': 'Bulgarian split squat',
+  'Hamstring curl': 'Slider hamstring curl',
+  'Standing calf raise': 'Single-leg calf raise',
+  'Pull-up or lat pulldown': 'Band lat pulldown or assisted pull-up',
+  'Barbell row': 'Backpack row',
+  'Single-arm cable row': 'One-arm dumbbell row',
+  'Face pull': 'Band face pull',
+  'Front squat': 'Double dumbbell front squat',
+  'Chest-supported row': 'Incline dumbbell row',
+  'Trap bar deadlift': 'Dumbbell Romanian deadlift',
+  'Lat pulldown': 'Band lat pulldown',
+  'Row machine': 'Fast step-up intervals',
+  'Landmine press': 'Single-arm dumbbell press',
+  'Cable row': 'Band row',
+  'Sled push': 'Hill march or loaded carry',
+  'Paused squat': 'Paused goblet squat',
+  'Weighted dip': 'Close-grip push-up',
+  'Triceps extension': 'Dumbbell triceps extension',
+  Deadlift: 'Dumbbell deadlift',
+  'Weighted pull-up': 'Assisted pull-up or band pulldown',
+};
+
+const getLevel = (bmi: number, experienceLevel: ExperienceLevel): WeeklyPlan['level'] => {
+  if (experienceLevel === 'advanced') return 'Performance';
+  if (experienceLevel === 'beginner' || bmi < 18.5 || bmi >= 30) return 'Foundation';
+  return 'Balanced';
 };
 
 const getTitle = (goal: Goal) => {
@@ -176,15 +214,79 @@ const getTitle = (goal: Goal) => {
   }
 };
 
-export const generatePlan = (bmi: number, goal: Goal): WeeklyPlan => {
-  const schedule = BASE_DAYS[goal] ?? BASE_DAYS.maintain;
-  const level = getLevel(bmi);
+const clampTrainingDays = (value: string | number | undefined, max: number) => {
+  const parsed = Number.parseInt(String(value ?? max), 10);
+  return Math.max(2, Math.min(max, Number.isFinite(parsed) ? parsed : max));
+};
+
+const getLatestFeedback = (progress: CompletedDay[] = []) => {
+  return progress.find((item) => item.effortRating || typeof item.completedAllSets === 'boolean');
+};
+
+const getProgression = (week: number, experienceLevel: ExperienceLevel, feedback?: CompletedDay) => {
+  const baseRamp = Math.min(3, Math.floor((week - 1) / 2));
+  let setBoost = experienceLevel === 'advanced' ? Math.min(2, baseRamp) : Math.min(1, baseRamp);
+  let restDelta = week > 4 ? -5 : 0;
+  let intensityNote = `Week ${week}: steady progression. Add a rep where form stays clean.`;
+
+  if (feedback?.effortRating && feedback.effortRating <= 2 && feedback.completedAllSets) {
+    setBoost += 1;
+    restDelta -= 5;
+    intensityNote = 'Last feedback was easy and complete, so the next plan nudges volume up.';
+  }
+
+  if ((feedback?.effortRating && feedback.effortRating >= 5) || feedback?.completedAllSets === false) {
+    setBoost = Math.max(0, setBoost - 1);
+    restDelta += 15;
+    intensityNote = 'Last feedback was hard or incomplete, so the next plan holds volume and gives more recovery.';
+  }
+
+  return { setBoost, restDelta, intensityNote };
+};
+
+const adaptExerciseName = (name: string, equipmentAccess: EquipmentAccess) => {
+  if (equipmentAccess !== 'home') return name;
+  return HOME_EXERCISES[name] ?? name;
+};
+
+const adaptSchedule = (schedule: Day[], options: Required<Pick<GeneratePlanOptions, 'experienceLevel' | 'equipmentAccess'>>, setBoost: number, restDelta: number) => {
+  return schedule.map((day) => ({
+    ...day,
+    day: day.day,
+    durationMinutes: Math.max(25, day.durationMinutes + setBoost * 4),
+    exercises: day.exercises.map((exercise) => ({
+      ...exercise,
+      name: adaptExerciseName(exercise.name, options.equipmentAccess),
+      sets: Math.max(2, exercise.sets + setBoost),
+      restSeconds: Math.max(30, exercise.restSeconds + restDelta),
+    })),
+  }));
+};
+
+export const isTrainingDay = (plan: WeeklyPlan, date = new Date()) => {
+  const dayIndex = date.getDay();
+  return dayIndex > 0 && dayIndex <= plan.daysPerWeek;
+};
+
+export const generatePlan = (bmi: number, goal: Goal, options: GeneratePlanOptions = {}): WeeklyPlan => {
+  const baseSchedule = BASE_DAYS[goal] ?? BASE_DAYS.maintain;
+  const experienceLevel = options.experienceLevel ?? 'beginner';
+  const equipmentAccess = options.equipmentAccess ?? 'gym';
+  const daysPerWeek = clampTrainingDays(options.trainingDays, baseSchedule.length);
+  const currentWeek = getCurrentProgramWeek(options.programStartDate);
+  const latestFeedback = getLatestFeedback(options.progress);
+  const { setBoost, restDelta, intensityNote } = getProgression(currentWeek, experienceLevel, latestFeedback);
+  const schedule = adaptSchedule(baseSchedule.slice(0, daysPerWeek), { experienceLevel, equipmentAccess }, setBoost, restDelta);
+  const level = getLevel(Number.isFinite(bmi) ? bmi : 22, experienceLevel);
 
   return {
     title: getTitle(goal),
     level,
+    currentWeek,
     daysPerWeek: schedule.length,
-    summary: `${schedule.length} focused sessions with built-in recovery and progress tracking.`,
+    summary: `${schedule.length} ${equipmentAccess === 'home' ? 'home-ready' : equipmentAccess} sessions for a ${experienceLevel} athlete.`,
+    progressionNote: `Program started ${options.programStartDate ?? 'today'} and is now on week ${currentWeek}.`,
+    intensityNote,
     schedule,
   };
 };

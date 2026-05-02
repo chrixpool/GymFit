@@ -8,7 +8,7 @@ import { findExerciseExample, getExerciseDemoUrl } from '../data/exerciseExample
 import { getCurrentAccount } from '../lib/accounts';
 import { toDateKey } from '../lib/date';
 import { getProfile } from '../lib/profile';
-import { getProgress, toggleExercise } from '../lib/tracking';
+import { getProgress, saveWorkoutFeedback, toggleExercise } from '../lib/tracking';
 import { generatePlan } from '../lib/workoutEngine';
 import { CompletedDay, Day, WeeklyPlan } from '../types/workout';
 
@@ -17,6 +17,7 @@ const colors = AppTheme.colors;
 export default function Plan() {
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [progress, setProgress] = useState<CompletedDay[]>([]);
+  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, { effortRating: number; completedAllSets: boolean | null }>>({});
   const today = toDateKey();
 
   const load = useCallback(async () => {
@@ -35,7 +36,13 @@ export default function Plan() {
     }
 
     const [savedProgress] = await Promise.all([getProgress()]);
-    setPlan(generatePlan(parseFloat(profile.bmi), profile.goal));
+    setPlan(generatePlan(parseFloat(profile.bmi), profile.goal, {
+      experienceLevel: profile.experienceLevel,
+      equipmentAccess: profile.equipmentAccess,
+      trainingDays: profile.trainingDays,
+      programStartDate: profile.programStartDate,
+      progress: savedProgress,
+    }));
     setProgress(savedProgress);
   }, []);
 
@@ -63,6 +70,14 @@ export default function Plan() {
     setProgress(await getProgress());
   };
 
+  const handleFeedback = async (day: Day) => {
+    const draft = feedbackDrafts[day.day];
+    if (!draft || draft.completedAllSets === null) return;
+
+    await saveWorkoutFeedback(today, day.day, draft.effortRating, draft.completedAllSets);
+    await load();
+  };
+
   if (!plan) {
     return (
       <View style={styles.centered}>
@@ -84,8 +99,11 @@ export default function Plan() {
         <Text style={styles.subtitle}>{plan.summary}</Text>
         <View style={styles.heroStats}>
           <Stat label="Days" value={`${plan.daysPerWeek}/week`} />
+          <Stat label="Week" value={`${plan.currentWeek}`} />
           <Stat label="Today" value={today} />
         </View>
+        <Text style={styles.coachNote}>{plan.progressionNote}</Text>
+        <Text style={styles.coachNote}>{plan.intensityNote}</Text>
       </View>
 
       {plan.schedule.map((day) => {
@@ -130,6 +148,55 @@ export default function Plan() {
                 </View>
               );
             })}
+
+            {complete ? (
+              <View style={styles.feedbackCard}>
+                {entry?.feedbackAt ? (
+                  <>
+                    <Text style={styles.feedbackTitle}>Coach feedback saved</Text>
+                    <Text style={styles.feedbackCopy}>Effort {entry.effortRating}/5 | {entry.completedAllSets ? 'All sets completed' : 'Sets missed'}. Next week adapts from this.</Text>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.feedbackTitle}>How did this workout feel?</Text>
+                    <View style={styles.ratingRow}>
+                      {[1, 2, 3, 4, 5].map((rating) => {
+                        const active = (feedbackDrafts[day.day]?.effortRating ?? 3) === rating;
+                        return (
+                          <Pressable
+                            key={rating}
+                            accessibilityRole="button"
+                            onPress={() => setFeedbackDrafts((drafts) => ({ ...drafts, [day.day]: { effortRating: rating, completedAllSets: drafts[day.day]?.completedAllSets ?? null } }))}
+                            style={[styles.ratingButton, active && styles.ratingButtonActive]}
+                          >
+                            <Text style={[styles.ratingText, active && styles.ratingTextActive]}>{rating}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    <View style={styles.feedbackActions}>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setFeedbackDrafts((drafts) => ({ ...drafts, [day.day]: { effortRating: drafts[day.day]?.effortRating ?? 3, completedAllSets: true } }))}
+                        style={[styles.feedbackChoice, feedbackDrafts[day.day]?.completedAllSets === true && styles.feedbackChoiceActive]}
+                      >
+                        <Text style={styles.feedbackChoiceText}>All sets</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setFeedbackDrafts((drafts) => ({ ...drafts, [day.day]: { effortRating: drafts[day.day]?.effortRating ?? 3, completedAllSets: false } }))}
+                        style={[styles.feedbackChoice, feedbackDrafts[day.day]?.completedAllSets === false && styles.feedbackChoiceActive]}
+                      >
+                        <Text style={styles.feedbackChoiceText}>Missed sets</Text>
+                      </Pressable>
+                    </View>
+                    <Pressable accessibilityRole="button" onPress={() => handleFeedback(day)} style={styles.feedbackSave}>
+                      <Text style={styles.feedbackSaveText}>Save feedback</Text>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+            ) : null}
           </View>
         );
       })}
@@ -157,7 +224,7 @@ const styles = StyleSheet.create({
   levelBadge: { color: colors.text, backgroundColor: colors.surfaceRaised, borderRadius: 8, overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 6, fontSize: 12, fontWeight: '800' },
   title: { color: colors.text, fontSize: 28, lineHeight: 34, fontWeight: '800' },
   subtitle: { color: colors.muted, fontSize: 14, lineHeight: 21 },
-  heroStats: { flexDirection: 'row', gap: 10 },
+  heroStats: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   statPill: { flex: 1, backgroundColor: colors.input, borderRadius: 12, padding: 12 },
   statLabel: { color: colors.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
   statValue: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: 4 },
@@ -170,6 +237,7 @@ const styles = StyleSheet.create({
   dayMetaText: { color: colors.muted, fontWeight: '800', fontSize: 12 },
   progressTrack: { height: 7, borderRadius: 4, backgroundColor: colors.surfaceRaised, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
+  coachNote: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border },
   exerciseRowDone: { borderColor: `${colors.success}66`, backgroundColor: '#102016' },
   exerciseToggle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -178,6 +246,20 @@ const styles = StyleSheet.create({
   exerciseMeta: { color: colors.muted, fontSize: 12, marginTop: 3 },
   exerciseCue: { color: colors.subtle, fontSize: 11, marginTop: 4 },
   demoButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
+  feedbackCard: { backgroundColor: colors.surfaceRaised, borderRadius: 12, padding: 12, gap: 10, borderWidth: 1, borderColor: colors.border },
+  feedbackTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
+  feedbackCopy: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  ratingRow: { flexDirection: 'row', gap: 8 },
+  ratingButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.input, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  ratingButtonActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  ratingText: { color: colors.muted, fontWeight: '800' },
+  ratingTextActive: { color: colors.text },
+  feedbackActions: { flexDirection: 'row', gap: 8 },
+  feedbackChoice: { flex: 1, backgroundColor: colors.input, borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
+  feedbackChoiceActive: { borderColor: colors.success, backgroundColor: '#102016' },
+  feedbackChoiceText: { color: colors.text, fontSize: 12, fontWeight: '800' },
+  feedbackSave: { backgroundColor: colors.primary, borderRadius: 10, minHeight: 42, alignItems: 'center', justifyContent: 'center' },
+  feedbackSaveText: { color: colors.text, fontSize: 13, fontWeight: '800' },
 });
 
 

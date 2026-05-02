@@ -3,7 +3,7 @@ import { getCurrentUser } from './auth';
 import { getWeekDateKeys, toDateKey } from './date';
 import { supabase } from './supabase';
 
-const PROGRESS_COLUMNS = 'date, day, focus, completed, exercises';
+const PROGRESS_COLUMNS = 'date, day, focus, completed, exercises, effort_rating, completed_all_sets, feedback_at';
 
 type ProgressRow = {
   date: string;
@@ -11,6 +11,9 @@ type ProgressRow = {
   focus: string;
   completed: boolean;
   exercises: Partial<CompletedExercise>[] | null;
+  effort_rating?: number | null;
+  completed_all_sets?: boolean | null;
+  feedback_at?: string | null;
 };
 
 const getUserId = async () => {
@@ -42,6 +45,9 @@ const toCompletedDay = (row: ProgressRow): CompletedDay => ({
   focus: row.focus,
   completed: Boolean(row.completed),
   exercises: Array.isArray(row.exercises) ? row.exercises.map(normalizeExercise) : [],
+  effortRating: typeof row.effort_rating === 'number' ? row.effort_rating : undefined,
+  completedAllSets: typeof row.completed_all_sets === 'boolean' ? row.completed_all_sets : undefined,
+  feedbackAt: row.feedback_at ?? undefined,
 });
 
 const toProgressRow = (day: CompletedDay, userId: string) => {
@@ -54,6 +60,9 @@ const toProgressRow = (day: CompletedDay, userId: string) => {
     focus: normalized.focus,
     completed: normalized.completed,
     exercises: normalized.exercises,
+    effort_rating: normalized.effortRating ?? null,
+    completed_all_sets: normalized.completedAllSets ?? null,
+    feedback_at: normalized.feedbackAt ?? null,
     updated_at: new Date().toISOString(),
   };
 };
@@ -132,6 +141,25 @@ export const toggleExercise = async (
 
   await saveProgress(progress);
   return entry;
+};
+
+export const saveWorkoutFeedback = async (date: string, day: string, effortRating: number, completedAllSets: boolean) => {
+  const userId = await getUserId();
+  const normalizedEffort = Math.max(1, Math.min(5, Math.round(effortRating)));
+  const feedbackAt = new Date().toISOString();
+  const { error } = await supabase
+    .from('workout_progress')
+    .update({
+      effort_rating: normalizedEffort,
+      completed_all_sets: completedAllSets,
+      feedback_at: feedbackAt,
+      updated_at: feedbackAt,
+    })
+    .eq('user_id', userId)
+    .eq('date', date)
+    .eq('day', day);
+
+  if (error) throw error;
 };
 
 export const getStreak = async () => {

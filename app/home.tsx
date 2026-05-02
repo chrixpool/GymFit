@@ -10,7 +10,8 @@ import { getTodayMeals } from '../lib/nutrition';
 import { getNutritionTargets } from '../lib/nutritionEngine';
 import { getResolvedNutritionTargets } from '../lib/nutritionGoals';
 import { getProfile } from '../lib/profile';
-import { getStreak, getWeeklyProgress } from '../lib/tracking';
+import { getProgress, getStreak, getWeeklyProgress } from '../lib/tracking';
+import { generatePlan, isTrainingDay } from '../lib/workoutEngine';
 import { MealEntry, NutritionTargets, UserAccount, UserProfile, WeeklyProgress } from '../types/workout';
 
 const WEEK_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -49,12 +50,13 @@ export default function Home() {
       let alive = true;
 
       const load = async () => {
-        const [activeAccount, savedProfile, currentStreak, todayMeals, week] = await Promise.all([
+        const [activeAccount, savedProfile, currentStreak, todayMeals, week, allProgress] = await Promise.all([
           getCurrentAccount(),
           getProfile(),
           getStreak(),
           getTodayMeals(),
           getWeeklyProgress(),
+          getProgress(),
         ]);
 
         if (!alive) return;
@@ -69,7 +71,22 @@ export default function Home() {
         setStreak(currentStreak);
         setMeals(todayMeals);
         setWeekly(week);
-        setTargets(savedProfile ? await getResolvedNutritionTargets(getNutritionTargets(parseFloat(savedProfile.bmi), savedProfile.goal)) : null);
+        if (savedProfile) {
+          const generatedPlan = generatePlan(parseFloat(savedProfile.bmi), savedProfile.goal, {
+            experienceLevel: savedProfile.experienceLevel,
+            equipmentAccess: savedProfile.equipmentAccess,
+            trainingDays: savedProfile.trainingDays,
+            programStartDate: savedProfile.programStartDate,
+            progress: allProgress,
+          });
+          setTargets(await getResolvedNutritionTargets(getNutritionTargets(parseFloat(savedProfile.bmi), savedProfile.goal, {
+            weightKg: Number.parseFloat(savedProfile.weight),
+            trainingDay: isTrainingDay(generatedPlan),
+            weeklyProgress: week,
+          })));
+        } else {
+          setTargets(null);
+        }
         setLoading(false);
       };
 

@@ -8,9 +8,11 @@ import { AppTheme } from '../constants/theme';
 import { MEAL_TEMPLATES } from '../data/meals';
 import { FoodLookupResult, lookupFoodNutrition } from '../lib/foodLookup';
 import { addMeal, addQuickMeal, deleteMeal, getTodayMeals, updateMeal } from '../lib/nutrition';
-import { getNutritionTargets } from '../lib/nutritionEngine';
+import { getNutritionStrategy, getNutritionTargets } from '../lib/nutritionEngine';
 import { clearNutritionTargetOverrides, getResolvedNutritionTargets, saveNutritionTargetOverrides } from '../lib/nutritionGoals';
 import { getProfile } from '../lib/profile';
+import { getProgress, getWeeklyProgress } from '../lib/tracking';
+import { generatePlan, isTrainingDay } from '../lib/workoutEngine';
 import { MealEntry, MealType, NutritionTargets } from '../types/workout';
 
 const colors = AppTheme.colors;
@@ -20,6 +22,8 @@ const EMPTY_TARGET_DRAFT = { calories: '', protein: '', carbs: '', fat: '' };
 export default function Nutrition() {
   const [meals, setMeals] = useState<MealEntry[]>([]);
   const [targets, setTargets] = useState<NutritionTargets | null>(null);
+  const [nutritionMode, setNutritionMode] = useState<'training' | 'rest'>('training');
+  const [strategy, setStrategy] = useState('');
   const [type, setType] = useState<MealType>('lunch');
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
@@ -36,10 +40,24 @@ export default function Nutrition() {
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    const [todayMeals, profile] = await Promise.all([getTodayMeals(), getProfile()]);
-    const resolvedTargets = profile ? await getResolvedNutritionTargets(getNutritionTargets(parseFloat(profile.bmi), profile.goal)) : null;
+    const [todayMeals, profile, weeklyProgress, progress] = await Promise.all([getTodayMeals(), getProfile(), getWeeklyProgress(), getProgress()]);
+    const generatedPlan = profile ? generatePlan(parseFloat(profile.bmi), profile.goal, {
+      experienceLevel: profile.experienceLevel,
+      equipmentAccess: profile.equipmentAccess,
+      trainingDays: profile.trainingDays,
+      programStartDate: profile.programStartDate,
+      progress,
+    }) : null;
+    const trainingDay = generatedPlan ? isTrainingDay(generatedPlan) : true;
+    const resolvedTargets = profile ? await getResolvedNutritionTargets(getNutritionTargets(parseFloat(profile.bmi), profile.goal, {
+      weightKg: Number.parseFloat(profile.weight),
+      trainingDay,
+      weeklyProgress,
+    })) : null;
 
     setMeals(todayMeals);
+    setNutritionMode(trainingDay ? 'training' : 'rest');
+    setStrategy(profile ? getNutritionStrategy(profile.goal, trainingDay) : '');
     setTargets(resolvedTargets);
     if (resolvedTargets) setTargetDraft(toDraft(resolvedTargets));
   }, []);
@@ -181,7 +199,7 @@ export default function Nutrition() {
           <Ionicons name="restaurant-outline" size={24} color={colors.text} />
         </View>
         <Text style={styles.title}>Nutrition tracker</Text>
-        <Text style={styles.subtitle}>Look up meals online, edit targets, and keep every macro visible.</Text>
+        <Text style={styles.subtitle}>{nutritionMode === 'training' ? 'Training day targets' : 'Rest day targets'} adapt with your plan, body weight, and weekly consistency.</Text>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${percent}%`, backgroundColor: percent > 92 ? colors.primary : colors.warning }]} />
         </View>
@@ -222,7 +240,10 @@ export default function Nutrition() {
               </View>
             </>
           ) : (
-            <Text style={styles.cardCopy}>{targets.calories} kcal, {targets.protein}g protein, {targets.carbs}g carbs, {targets.fat}g fat. Tune this anytime when your coach or goal changes.</Text>
+            <>
+              <Text style={styles.cardCopy}>{targets.calories} kcal, {targets.protein}g protein, {targets.carbs}g carbs, {targets.fat}g fat. Protein uses your body weight; calories shift for training/rest days and weekly consistency.</Text>
+              <Text style={styles.strategyText}>{strategy}</Text>
+            </>
           )}
         </View>
       ) : null}
@@ -384,6 +405,7 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '800' },
   cardCopy: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  strategyText: { color: colors.info, fontSize: 12, lineHeight: 18, fontWeight: '700' },
   iconButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
   templateGrid: { gap: 10 },
   templateCard: { backgroundColor: colors.input, borderRadius: 12, padding: 13, borderWidth: 1, borderColor: colors.border },

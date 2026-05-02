@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppTheme } from '../constants/theme';
 import { getCurrentAccount } from '../lib/accounts';
 import { getProfile, saveProfile } from '../lib/profile';
-import { Goal } from '../types/workout';
+import { getDefaultProgramStartDate } from '../lib/program';
+import { EquipmentAccess, ExperienceLevel, Goal } from '../types/workout';
 
 const colors = AppTheme.colors;
 
@@ -28,6 +29,9 @@ export default function Onboarding() {
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [goal, setGoal] = useState<Goal>('lose weight');
+  const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('beginner');
+  const [equipmentAccess, setEquipmentAccess] = useState<EquipmentAccess>('gym');
+  const [trainingDays, setTrainingDays] = useState('3');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useFocusEffect(
@@ -48,6 +52,9 @@ export default function Onboarding() {
         setWeight(profile.weight);
         setHeight(profile.height);
         setGoal(profile.goal);
+        setExperienceLevel(profile.experienceLevel);
+        setEquipmentAccess(profile.equipmentAccess);
+        setTrainingDays(profile.trainingDays);
       };
 
       load();
@@ -63,10 +70,12 @@ export default function Onboarding() {
     const parsedAge = Number.parseInt(age, 10);
     const parsedWeight = Number.parseFloat(weight);
     const parsedHeight = Number.parseFloat(height);
+    const parsedTrainingDays = Number.parseInt(trainingDays, 10);
 
     if (!Number.isFinite(parsedAge) || parsedAge < 10 || parsedAge > 100) nextErrors.age = 'Use an age from 10 to 100.';
     if (!Number.isFinite(parsedWeight) || parsedWeight < 30 || parsedWeight > 300) nextErrors.weight = 'Use a weight from 30 to 300 kg.';
     if (!Number.isFinite(parsedHeight) || parsedHeight < 100 || parsedHeight > 250) nextErrors.height = 'Use a height from 100 to 250 cm.';
+    if (!Number.isFinite(parsedTrainingDays) || parsedTrainingDays < 2 || parsedTrainingDays > 6) nextErrors.trainingDays = 'Choose 2 to 6 training days.';
 
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
@@ -91,6 +100,10 @@ export default function Onboarding() {
       height: height.trim(),
       goal,
       bmi: bmi.toFixed(1),
+      experienceLevel,
+      equipmentAccess,
+      trainingDays: trainingDays.trim(),
+      programStartDate: getDefaultProgramStartDate(),
     });
 
     router.replace('/home');
@@ -103,7 +116,7 @@ export default function Onboarding() {
           <View style={styles.header}>
             <Text style={styles.eyebrow}>Profile setup</Text>
             <Text style={styles.title}>Tune the plan around you</Text>
-            <Text style={styles.subtitle}>Your stats stay on-device and drive workout intensity, calories, and macro targets.</Text>
+            <Text style={styles.subtitle}>Your stats shape program progression, workout difficulty, equipment swaps, and adaptive nutrition.</Text>
           </View>
 
           <View style={styles.section}>
@@ -131,6 +144,21 @@ export default function Onboarding() {
             </View>
           </View>
 
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Training profile</Text>
+            <View style={styles.optionGrid}>
+              {(['beginner', 'intermediate', 'advanced'] as ExperienceLevel[]).map((item) => (
+                <OptionButton key={item} label={item} active={experienceLevel === item} onPress={() => setExperienceLevel(item)} />
+              ))}
+            </View>
+            <View style={styles.optionGrid}>
+              {(['gym', 'home', 'mixed'] as EquipmentAccess[]).map((item) => (
+                <OptionButton key={item} label={item} active={equipmentAccess === item} onPress={() => setEquipmentAccess(item)} />
+              ))}
+            </View>
+            <Field label="Training days per week" placeholder="3" value={trainingDays} onChangeText={setTrainingDays} keyboardType="number-pad" error={errors.trainingDays} />
+          </View>
+
           <Pressable accessibilityRole="button" onPress={handleSave} style={styles.saveButton}>
             <Ionicons name="checkmark-circle-outline" size={20} color={colors.text} />
             <Text style={styles.saveButtonText}>Save and start</Text>
@@ -138,6 +166,14 @@ export default function Onboarding() {
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+function OptionButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.optionButton, active && styles.optionButtonActive]}>
+      <Text style={[styles.optionText, active && styles.optionTextActive]}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -173,6 +209,11 @@ const styles = StyleSheet.create({
   goalIconActive: { backgroundColor: colors.primary },
   goalLabel: { color: colors.text, fontSize: 15, fontWeight: '800' },
   goalDescription: { color: colors.muted, fontSize: 12, lineHeight: 17, marginTop: 5 },
+  optionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  optionButton: { flexGrow: 1, minWidth: '30%', backgroundColor: colors.input, borderRadius: 12, borderWidth: 1, borderColor: colors.border, paddingVertical: 12, paddingHorizontal: 10, alignItems: 'center' },
+  optionButtonActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  optionText: { color: colors.muted, fontSize: 13, fontWeight: '800', textTransform: 'capitalize' },
+  optionTextActive: { color: colors.text },
   saveButton: { backgroundColor: colors.primary, borderRadius: 14, minHeight: 52, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   saveButtonText: { color: colors.text, fontSize: 15, fontWeight: '800' },
 });
