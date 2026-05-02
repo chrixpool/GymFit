@@ -1,11 +1,27 @@
 import { CompletedDay, CompletedExercise, WeeklyProgress } from '../types/workout';
-import { getAccountStorageKey } from './accounts';
+import { getCurrentUser } from './auth';
 import { getWeekDateKeys, toDateKey } from './date';
-import { readJson, writeJson } from './storage';
+import { supabase } from './supabase';
 
-const PROGRESS_NAMESPACE = 'progress';
+const PROGRESS_COLUMNS = 'date, day, focus, completed, exercises';
 
-const getProgressKey = async () => getAccountStorageKey(PROGRESS_NAMESPACE);
+type ProgressRow = {
+  date: string;
+  day: string;
+  focus: string;
+  completed: boolean;
+  exercises: Partial<CompletedExercise>[] | null;
+};
+
+const getUserId = async () => {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new Error('No logged-in user.');
+  }
+
+  return user.id;
+};
 
 const normalizeExercise = (exercise: Partial<CompletedExercise>): CompletedExercise => ({
   name: exercise.name?.trim() || 'Exercise',
@@ -20,18 +36,51 @@ const normalizeDay = (day: Partial<CompletedDay>): CompletedDay => ({
   exercises: Array.isArray(day.exercises) ? day.exercises.map(normalizeExercise) : [],
 });
 
+const toCompletedDay = (row: ProgressRow): CompletedDay => ({
+  date: row.date,
+  day: row.day,
+  focus: row.focus,
+  completed: Boolean(row.completed),
+  exercises: Array.isArray(row.exercises) ? row.exercises.map(normalizeExercise) : [],
+});
+
+const toProgressRow = (day: CompletedDay, userId: string) => {
+  const normalized = normalizeDay(day);
+
+  return {
+    user_id: userId,
+    date: normalized.date,
+    day: normalized.day,
+    focus: normalized.focus,
+    completed: normalized.completed,
+    exercises: normalized.exercises,
+    updated_at: new Date().toISOString(),
+  };
+};
+
 export const getProgress = async (): Promise<CompletedDay[]> => {
-  try {
-    const progress = await readJson<Partial<CompletedDay>[]>(await getProgressKey(), []);
-    return progress.map(normalizeDay);
-  } catch {
-    return [];
-  }
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from('workout_progress')
+    .select(PROGRESS_COLUMNS)
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .order('day', { ascending: true });
+
+  if (error) throw error;
+
+  return ((data ?? []) as ProgressRow[]).map(toCompletedDay);
 };
 
 export const saveProgress = async (data: CompletedDay[]) => {
-  const key = await getProgressKey();
-  await writeJson(key, data.map(normalizeDay));
+  const userId = await getUserId();
+  const rows = data.map((day) => toProgressRow(day, userId));
+
+  if (rows.length === 0) return;
+
+  const { error } = await supabase.from('workout_progress').upsert(rows, { onConflict: 'user_id,date,day' });
+
+  if (error) throw error;
 };
 
 const buildExerciseList = (names: string[], existing: CompletedExercise[]) => {

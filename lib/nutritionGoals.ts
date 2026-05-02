@@ -1,10 +1,18 @@
 import type { NutritionTargets } from '../types/workout';
-import { getAccountStorageKey } from './accounts';
-import { readJson, writeJson } from './storage';
+import { getCurrentUser } from './auth';
+import { supabase } from './supabase';
 
-const TARGET_OVERRIDES_NAMESPACE = 'nutrition-target-overrides';
+const TARGET_COLUMNS = 'calories, protein, carbs, fat';
 
-const getTargetOverridesKey = async () => getAccountStorageKey(TARGET_OVERRIDES_NAMESPACE);
+const getUserId = async () => {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    throw new Error('No logged-in user.');
+  }
+
+  return user.id;
+};
 
 const normalizeTargets = (targets: Partial<NutritionTargets>): Partial<NutritionTargets> => {
   const next: Partial<NutritionTargets> = {};
@@ -18,19 +26,35 @@ const normalizeTargets = (targets: Partial<NutritionTargets>): Partial<Nutrition
 };
 
 export const getNutritionTargetOverrides = async () => {
-  const key = await getTargetOverridesKey();
-  const overrides = await readJson<Partial<NutritionTargets>>(key, {});
-  return normalizeTargets(overrides);
+  const userId = await getUserId();
+  const { data, error } = await supabase
+    .from('nutrition_target_overrides')
+    .select(TARGET_COLUMNS)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  return normalizeTargets(data ?? {});
 };
 
 export const saveNutritionTargetOverrides = async (targets: Partial<NutritionTargets>) => {
-  const key = await getTargetOverridesKey();
-  await writeJson(key, normalizeTargets(targets));
+  const userId = await getUserId();
+  const normalized = normalizeTargets(targets);
+  const { error } = await supabase.from('nutrition_target_overrides').upsert({
+    user_id: userId,
+    ...normalized,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) throw error;
 };
 
 export const clearNutritionTargetOverrides = async () => {
-  const key = await getTargetOverridesKey();
-  await writeJson(key, {});
+  const userId = await getUserId();
+  const { error } = await supabase.from('nutrition_target_overrides').delete().eq('user_id', userId);
+
+  if (error) throw error;
 };
 
 export const getResolvedNutritionTargets = async (base: NutritionTargets) => {
