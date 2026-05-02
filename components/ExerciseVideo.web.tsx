@@ -1,8 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import YoutubePlayer from 'react-native-youtube-iframe';
 
 import { AppTheme } from '../constants/theme';
 import { getExerciseDemoUrl } from '../data/exerciseExamples';
@@ -26,11 +24,35 @@ export default function ExerciseVideo({ exerciseName, youtubeId, fallbackQuery }
     return isValidVideo && youtubeId ? `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` : '';
   }, [isValidVideo, youtubeId]);
 
+  const embedUrl = useMemo(() => {
+    return isValidVideo && youtubeId
+      ? `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=0&rel=0&modestbranding=1&playsinline=1`
+      : '';
+  }, [isValidVideo, youtubeId]);
+
   const searchUrl = useMemo(() => getExerciseDemoUrl(exerciseName, fallbackQuery), [exerciseName, fallbackQuery]);
 
   const openFallback = useCallback(() => {
-    WebBrowser.openBrowserAsync(searchUrl).catch(() => Linking.openURL(searchUrl));
+    Linking.openURL(searchUrl);
   }, [searchUrl]);
+
+  const showPlayer = useCallback(() => {
+    if (!isValidVideo) return;
+
+    setFailed(false);
+    setLoading(true);
+    setIsVisible(true);
+  }, [isValidVideo]);
+
+  const handleLoad = useCallback(() => {
+    setLoading(false);
+  }, []);
+
+  const handleError = useCallback(() => {
+    setLoading(false);
+    setFailed(true);
+    setIsVisible(false);
+  }, []);
 
   useEffect(() => {
     if (!loading) return undefined;
@@ -41,27 +63,6 @@ export default function ExerciseVideo({ exerciseName, youtubeId, fallbackQuery }
 
     return () => clearTimeout(timeout);
   }, [loading]);
-
-  const showPlayer = useCallback(() => {
-    if (!isValidVideo) {
-      openFallback();
-      return;
-    }
-
-    setFailed(false);
-    setLoading(true);
-    setIsVisible(true);
-  }, [isValidVideo, openFallback]);
-
-  const handleReady = useCallback(() => {
-    setLoading(false);
-  }, []);
-
-  const handleError = useCallback(() => {
-    setLoading(false);
-    setFailed(true);
-    setIsVisible(false);
-  }, []);
 
   if (!isValidVideo || failed) {
     return (
@@ -106,16 +107,19 @@ export default function ExerciseVideo({ exerciseName, youtubeId, fallbackQuery }
             <Text style={styles.loadingText}>Loading demo...</Text>
           </View>
         ) : null}
-        <YoutubePlayer
-          height={210}
-          play={false}
-          videoId={youtubeId}
-          onReady={handleReady}
-          onError={handleError}
-          webViewProps={{
-            allowsFullscreenVideo: true,
-          }}
-        />
+        {/*
+          Direct iframe on web avoids react-native-youtube-iframe's WebView bridge,
+          which can hang in Chrome and keep the loading overlay alive.
+        */}
+        {createElement('iframe', {
+          allow: 'accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+          allowFullScreen: true,
+          onError: handleError,
+          onLoad: handleLoad,
+          src: embedUrl,
+          style: iframeStyle,
+          title: `${exerciseName} demo`,
+        })}
       </View>
       <Pressable accessibilityRole="link" onPress={openFallback} style={styles.searchLink}>
         <Text style={styles.searchLinkText}>Open on YouTube</Text>
@@ -123,6 +127,12 @@ export default function ExerciseVideo({ exerciseName, youtubeId, fallbackQuery }
     </View>
   );
 }
+
+const iframeStyle = {
+  border: '0',
+  height: '100%',
+  width: '100%',
+};
 
 const styles = StyleSheet.create({
   videoShell: { width: '100%', gap: 8 },
