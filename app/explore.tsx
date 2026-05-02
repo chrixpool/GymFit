@@ -44,11 +44,11 @@ export default function Explore() {
         {EXERCISE_EXAMPLES.slice(0, 8).map((exercise) => (
           <View key={exercise.name} style={styles.exerciseCard}>
             <View style={styles.exerciseHeader}>
-              <View style={{ flex: 1 }}>
+              <View style={styles.exerciseText}>
                 <Text style={styles.rowTitle}>{exercise.name}</Text>
-                <Text style={styles.exerciseMeta}>{exercise.category} | {exercise.equipment}</Text>
+                <Text style={styles.exerciseMeta}>{exercise.youtubeId ? 'Embedded demo ready' : 'YouTube search fallback'}</Text>
               </View>
-              <Pressable accessibilityRole="link" onPress={() => Linking.openURL(getExerciseDemoUrl(exercise.name))} style={styles.demoButton}>
+              <Pressable accessibilityRole="link" onPress={() => Linking.openURL(getExerciseDemoUrl(exercise.name, exercise.fallbackQuery))} style={styles.demoButton}>
                 <Ionicons name="play-circle-outline" size={20} color={colors.info} />
               </Pressable>
             </View>
@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
   rowCopy: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 3 },
   exerciseCard: { backgroundColor: colors.input, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border, gap: 8 },
   exerciseHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  exerciseText: { flex: 1 },
   exerciseMeta: { color: colors.subtle, fontSize: 12, marginTop: 3 },
   demoButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
   mealRow: { backgroundColor: colors.input, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border },

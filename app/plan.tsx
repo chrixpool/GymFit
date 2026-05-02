@@ -1,23 +1,30 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { FlatList, ListRenderItem, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { ExerciseRow } from '../components/ExerciseRow';
 import { AppTheme } from '../constants/theme';
-import { findExerciseExample, getExerciseDemoUrl } from '../data/exerciseExamples';
+import { findExerciseExample } from '../data/exerciseExamples';
 import { getCurrentAccount } from '../lib/accounts';
 import { toDateKey } from '../lib/date';
 import { getProfile } from '../lib/profile';
 import { getProgress, saveWorkoutFeedback, toggleExercise } from '../lib/tracking';
 import { generatePlan } from '../lib/workoutEngine';
-import { CompletedDay, Day, WeeklyPlan } from '../types/workout';
+import { CompletedDay, Day, Exercise, WeeklyPlan } from '../types/workout';
 
 const colors = AppTheme.colors;
+const RATING_OPTIONS = [1, 2, 3, 4, 5] as const;
+
+type FeedbackDraft = {
+  effortRating: number;
+  completedAllSets: boolean | null;
+};
 
 export default function Plan() {
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [progress, setProgress] = useState<CompletedDay[]>([]);
-  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, { effortRating: number; completedAllSets: boolean | null }>>({});
+  const [feedbackDrafts, setFeedbackDrafts] = useState<Record<string, FeedbackDraft>>({});
   const today = toDateKey();
 
   const load = useCallback(async () => {
@@ -35,7 +42,7 @@ export default function Plan() {
       return;
     }
 
-    const [savedProgress] = await Promise.all([getProgress()]);
+    const savedProgress = await getProgress();
     setPlan(generatePlan(parseFloat(profile.bmi), profile.goal, {
       experienceLevel: profile.experienceLevel,
       equipmentAccess: profile.equipmentAccess,
@@ -59,35 +66,57 @@ export default function Plan() {
     }, {});
   }, [progress, today]);
 
-  const handleToggle = async (day: Day, exerciseName: string) => {
-    await toggleExercise(
-      today,
-      day.day,
-      day.focus,
-      exerciseName,
-      day.exercises.map((exercise) => exercise.name)
-    );
+  const handleExerciseToggle = useCallback(async (day: Day, exerciseName: string, exerciseNames: string[]) => {
+    await toggleExercise(today, day.day, day.focus, exerciseName, exerciseNames);
     setProgress(await getProgress());
-  };
+  }, [today]);
 
-  const handleFeedback = async (day: Day) => {
+  const handleFeedbackRating = useCallback((dayName: string, effortRating: number) => {
+    setFeedbackDrafts((drafts) => ({
+      ...drafts,
+      [dayName]: {
+        effortRating,
+        completedAllSets: drafts[dayName]?.completedAllSets ?? null,
+      },
+    }));
+  }, []);
+
+  const handleFeedbackCompletion = useCallback((dayName: string, completedAllSets: boolean) => {
+    setFeedbackDrafts((drafts) => ({
+      ...drafts,
+      [dayName]: {
+        effortRating: drafts[dayName]?.effortRating ?? 3,
+        completedAllSets,
+      },
+    }));
+  }, []);
+
+  const handleFeedbackSave = useCallback(async (day: Day) => {
     const draft = feedbackDrafts[day.day];
     if (!draft || draft.completedAllSets === null) return;
 
     await saveWorkoutFeedback(today, day.day, draft.effortRating, draft.completedAllSets);
     await load();
-  };
+  }, [feedbackDrafts, load, today]);
 
-  if (!plan) {
+  const renderDay = useCallback<ListRenderItem<Day>>(({ item }) => (
+    <DayCard
+      day={item}
+      entry={completedByDay[item.day]}
+      feedbackDraft={feedbackDrafts[item.day]}
+      onExerciseToggle={handleExerciseToggle}
+      onFeedbackCompletion={handleFeedbackCompletion}
+      onFeedbackRating={handleFeedbackRating}
+      onFeedbackSave={handleFeedbackSave}
+    />
+  ), [completedByDay, feedbackDrafts, handleExerciseToggle, handleFeedbackCompletion, handleFeedbackRating, handleFeedbackSave]);
+
+  const keyExtractor = useCallback((day: Day) => day.day, []);
+
+  const header = useMemo(() => {
+    if (!plan) return null;
+
     return (
-      <View style={styles.centered}>
-        <Text style={styles.emptyTitle}>Loading your plan</Text>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
         <View style={styles.heroTopRow}>
           <View style={styles.heroIcon}>
@@ -105,104 +134,238 @@ export default function Plan() {
         <Text style={styles.coachNote}>{plan.progressionNote}</Text>
         <Text style={styles.coachNote}>{plan.intensityNote}</Text>
       </View>
+    );
+  }, [plan, today]);
 
-      {plan.schedule.map((day) => {
-        const entry = completedByDay[day.day];
-        const doneCount = entry?.exercises.filter((exercise) => exercise.done).length ?? 0;
-        const complete = Boolean(entry?.completed);
-        const percent = Math.round((doneCount / day.exercises.length) * 100);
+  if (!plan) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.emptyTitle}>Loading your plan</Text>
+      </View>
+    );
+  }
 
-        return (
-          <View key={day.day} style={[styles.dayCard, complete && styles.dayCardComplete]}>
-            <View style={styles.dayHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.dayLabel}>{day.day}</Text>
-                <Text style={styles.dayFocus}>{day.focus}</Text>
-              </View>
-              <View style={styles.dayMeta}>
-                <Ionicons name={complete ? 'checkmark-circle' : 'time-outline'} size={18} color={complete ? colors.success : colors.muted} />
-                <Text style={[styles.dayMetaText, complete && { color: colors.success }]}>{doneCount}/{day.exercises.length}</Text>
-              </View>
-            </View>
-
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${percent}%`, backgroundColor: complete ? colors.success : colors.primary }]} />
-            </View>
-
-            {day.exercises.map((exercise) => {
-              const done = Boolean(entry?.exercises.find((item) => item.name === exercise.name)?.done);
-              const example = findExerciseExample(exercise.name);
-              return (
-                <View key={exercise.name} style={[styles.exerciseRow, done && styles.exerciseRowDone]}>
-                  <Pressable accessibilityRole="button" onPress={() => handleToggle(day, exercise.name)} style={styles.exerciseToggle}>
-                    <Ionicons name={done ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={done ? colors.success : colors.subtle} />
-                    <View style={styles.exerciseText}>
-                      <Text style={styles.exerciseName}>{exercise.name}</Text>
-                      <Text style={styles.exerciseMeta}>{exercise.sets} sets x {exercise.reps} | {exercise.restSeconds}s rest</Text>
-                      {example ? <Text style={styles.exerciseCue}>{example.category} | {example.muscles}</Text> : null}
-                    </View>
-                  </Pressable>
-                  <Pressable accessibilityRole="link" hitSlop={10} onPress={() => Linking.openURL(getExerciseDemoUrl(exercise.name))} style={styles.demoButton}>
-                    <Ionicons name="play-circle-outline" size={18} color={colors.info} />
-                  </Pressable>
-                </View>
-              );
-            })}
-
-            {complete ? (
-              <View style={styles.feedbackCard}>
-                {entry?.feedbackAt ? (
-                  <>
-                    <Text style={styles.feedbackTitle}>Coach feedback saved</Text>
-                    <Text style={styles.feedbackCopy}>Effort {entry.effortRating}/5 | {entry.completedAllSets ? 'All sets completed' : 'Sets missed'}. Next week adapts from this.</Text>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.feedbackTitle}>How did this workout feel?</Text>
-                    <View style={styles.ratingRow}>
-                      {[1, 2, 3, 4, 5].map((rating) => {
-                        const active = (feedbackDrafts[day.day]?.effortRating ?? 3) === rating;
-                        return (
-                          <Pressable
-                            key={rating}
-                            accessibilityRole="button"
-                            onPress={() => setFeedbackDrafts((drafts) => ({ ...drafts, [day.day]: { effortRating: rating, completedAllSets: drafts[day.day]?.completedAllSets ?? null } }))}
-                            style={[styles.ratingButton, active && styles.ratingButtonActive]}
-                          >
-                            <Text style={[styles.ratingText, active && styles.ratingTextActive]}>{rating}</Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                    <View style={styles.feedbackActions}>
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setFeedbackDrafts((drafts) => ({ ...drafts, [day.day]: { effortRating: drafts[day.day]?.effortRating ?? 3, completedAllSets: true } }))}
-                        style={[styles.feedbackChoice, feedbackDrafts[day.day]?.completedAllSets === true && styles.feedbackChoiceActive]}
-                      >
-                        <Text style={styles.feedbackChoiceText}>All sets</Text>
-                      </Pressable>
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setFeedbackDrafts((drafts) => ({ ...drafts, [day.day]: { effortRating: drafts[day.day]?.effortRating ?? 3, completedAllSets: false } }))}
-                        style={[styles.feedbackChoice, feedbackDrafts[day.day]?.completedAllSets === false && styles.feedbackChoiceActive]}
-                      >
-                        <Text style={styles.feedbackChoiceText}>Missed sets</Text>
-                      </Pressable>
-                    </View>
-                    <Pressable accessibilityRole="button" onPress={() => handleFeedback(day)} style={styles.feedbackSave}>
-                      <Text style={styles.feedbackSaveText}>Save feedback</Text>
-                    </Pressable>
-                  </>
-                )}
-              </View>
-            ) : null}
-          </View>
-        );
-      })}
-    </ScrollView>
+  return (
+    <FlatList
+      data={plan.schedule}
+      renderItem={renderDay}
+      keyExtractor={keyExtractor}
+      ListHeaderComponent={header}
+      style={styles.root}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+      initialNumToRender={3}
+      maxToRenderPerBatch={3}
+      windowSize={5}
+      removeClippedSubviews
+    />
   );
 }
+
+type DayCardProps = {
+  day: Day;
+  entry?: CompletedDay;
+  feedbackDraft?: FeedbackDraft;
+  onExerciseToggle: (day: Day, exerciseName: string, exerciseNames: string[]) => void;
+  onFeedbackCompletion: (dayName: string, completedAllSets: boolean) => void;
+  onFeedbackRating: (dayName: string, effortRating: number) => void;
+  onFeedbackSave: (day: Day) => void;
+};
+
+const DayCard = memo(function DayCard({
+  day,
+  entry,
+  feedbackDraft,
+  onExerciseToggle,
+  onFeedbackCompletion,
+  onFeedbackRating,
+  onFeedbackSave,
+}: DayCardProps) {
+  const doneExercises = entry?.exercises;
+  const exerciseNames = useMemo(() => day.exercises.map((exercise) => exercise.name), [day.exercises]);
+  const doneCount = useMemo(() => doneExercises?.filter((exercise) => exercise.done).length ?? 0, [doneExercises]);
+  const complete = Boolean(entry?.completed);
+  const percent = useMemo(() => Math.round((doneCount / day.exercises.length) * 100), [day.exercises.length, doneCount]);
+
+  const handleExerciseToggle = useCallback((exerciseName: string) => {
+    onExerciseToggle(day, exerciseName, exerciseNames);
+  }, [day, exerciseNames, onExerciseToggle]);
+
+  const handleFeedbackSave = useCallback(() => {
+    onFeedbackSave(day);
+  }, [day, onFeedbackSave]);
+
+  const renderExercise = useCallback<ListRenderItem<Exercise>>(({ item }) => {
+    const done = Boolean(doneExercises?.find((exercise) => exercise.name === item.name)?.done);
+    return (
+      <ExerciseRow
+        exercise={item}
+        done={done}
+        example={findExerciseExample(item.name)}
+        onToggle={handleExerciseToggle}
+      />
+    );
+  }, [doneExercises, handleExerciseToggle]);
+
+  const keyExtractor = useCallback((exercise: Exercise) => exercise.name, []);
+
+  return (
+    <View style={[styles.dayCard, complete && styles.dayCardComplete]}>
+      <View style={styles.dayHeader}>
+        <View style={styles.dayHeaderText}>
+          <Text style={styles.dayLabel}>{day.day}</Text>
+          <Text style={styles.dayFocus}>{day.focus}</Text>
+        </View>
+        <View style={styles.dayMeta}>
+          <Ionicons name={complete ? 'checkmark-circle' : 'time-outline'} size={18} color={complete ? colors.success : colors.muted} />
+          <Text style={[styles.dayMetaText, complete && styles.dayMetaTextComplete]}>{doneCount}/{day.exercises.length}</Text>
+        </View>
+      </View>
+
+      <View style={styles.progressTrack}>
+        <View style={[styles.progressFill, { width: `${percent}%`, backgroundColor: complete ? colors.success : colors.primary }]} />
+      </View>
+
+      <FlatList
+        data={day.exercises}
+        renderItem={renderExercise}
+        keyExtractor={keyExtractor}
+        scrollEnabled={false}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={3}
+        ItemSeparatorComponent={ExerciseSeparator}
+        removeClippedSubviews
+      />
+
+      {complete ? (
+        <FeedbackPanel
+          dayName={day.day}
+          entry={entry}
+          feedbackDraft={feedbackDraft}
+          onCompletionChange={onFeedbackCompletion}
+          onRatingChange={onFeedbackRating}
+          onSave={handleFeedbackSave}
+        />
+      ) : null}
+    </View>
+  );
+});
+
+function ExerciseSeparator() {
+  return <View style={styles.exerciseSeparator} />;
+}
+
+type FeedbackPanelProps = {
+  dayName: string;
+  entry?: CompletedDay;
+  feedbackDraft?: FeedbackDraft;
+  onCompletionChange: (dayName: string, completedAllSets: boolean) => void;
+  onRatingChange: (dayName: string, effortRating: number) => void;
+  onSave: () => void;
+};
+
+const FeedbackPanel = memo(function FeedbackPanel({
+  dayName,
+  entry,
+  feedbackDraft,
+  onCompletionChange,
+  onRatingChange,
+  onSave,
+}: FeedbackPanelProps) {
+  const selectedRating = feedbackDraft?.effortRating ?? 3;
+
+  const renderRating = useCallback((rating: number) => (
+    <RatingButton
+      key={rating}
+      dayName={dayName}
+      rating={rating}
+      active={selectedRating === rating}
+      onPress={onRatingChange}
+    />
+  ), [dayName, onRatingChange, selectedRating]);
+
+  if (entry?.feedbackAt) {
+    return (
+      <View style={styles.feedbackCard}>
+        <Text style={styles.feedbackTitle}>Coach feedback saved</Text>
+        <Text style={styles.feedbackCopy}>Effort {entry.effortRating}/5 | {entry.completedAllSets ? 'All sets completed' : 'Sets missed'}. Next week adapts from this.</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.feedbackCard}>
+      <Text style={styles.feedbackTitle}>How did this workout feel?</Text>
+      <View style={styles.ratingRow}>{RATING_OPTIONS.map(renderRating)}</View>
+      <View style={styles.feedbackActions}>
+        <FeedbackChoiceButton
+          dayName={dayName}
+          label="All sets"
+          value
+          active={feedbackDraft?.completedAllSets === true}
+          onPress={onCompletionChange}
+        />
+        <FeedbackChoiceButton
+          dayName={dayName}
+          label="Missed sets"
+          value={false}
+          active={feedbackDraft?.completedAllSets === false}
+          onPress={onCompletionChange}
+        />
+      </View>
+      <Pressable accessibilityRole="button" onPress={onSave} style={styles.feedbackSave}>
+        <Text style={styles.feedbackSaveText}>Save feedback</Text>
+      </Pressable>
+    </View>
+  );
+});
+
+const RatingButton = memo(function RatingButton({
+  dayName,
+  rating,
+  active,
+  onPress,
+}: {
+  dayName: string;
+  rating: number;
+  active: boolean;
+  onPress: (dayName: string, effortRating: number) => void;
+}) {
+  const handlePress = useCallback(() => {
+    onPress(dayName, rating);
+  }, [dayName, onPress, rating]);
+
+  return (
+    <Pressable accessibilityRole="button" onPress={handlePress} style={[styles.ratingButton, active && styles.ratingButtonActive]}>
+      <Text style={[styles.ratingText, active && styles.ratingTextActive]}>{rating}</Text>
+    </Pressable>
+  );
+});
+
+const FeedbackChoiceButton = memo(function FeedbackChoiceButton({
+  dayName,
+  label,
+  value,
+  active,
+  onPress,
+}: {
+  dayName: string;
+  label: string;
+  value: boolean;
+  active: boolean;
+  onPress: (dayName: string, completedAllSets: boolean) => void;
+}) {
+  const handlePress = useCallback(() => {
+    onPress(dayName, value);
+  }, [dayName, onPress, value]);
+
+  return (
+    <Pressable accessibilityRole="button" onPress={handlePress} style={[styles.feedbackChoice, active && styles.feedbackChoiceActive]}>
+      <Text style={styles.feedbackChoiceText}>{label}</Text>
+    </Pressable>
+  );
+});
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -231,21 +394,16 @@ const styles = StyleSheet.create({
   dayCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 12 },
   dayCardComplete: { borderColor: `${colors.success}88` },
   dayHeader: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  dayHeaderText: { flex: 1 },
   dayLabel: { color: colors.muted, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
   dayFocus: { color: colors.text, fontSize: 19, fontWeight: '800', marginTop: 2 },
   dayMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.input, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7 },
   dayMetaText: { color: colors.muted, fontWeight: '800', fontSize: 12 },
+  dayMetaTextComplete: { color: colors.success },
   progressTrack: { height: 7, borderRadius: 4, backgroundColor: colors.surfaceRaised, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 4 },
   coachNote: { color: colors.muted, fontSize: 12, lineHeight: 18 },
-  exerciseRow: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 12, backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border },
-  exerciseRowDone: { borderColor: `${colors.success}66`, backgroundColor: '#102016' },
-  exerciseToggle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  exerciseText: { flex: 1 },
-  exerciseName: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  exerciseMeta: { color: colors.muted, fontSize: 12, marginTop: 3 },
-  exerciseCue: { color: colors.subtle, fontSize: 11, marginTop: 4 },
-  demoButton: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised },
+  exerciseSeparator: { height: 10 },
   feedbackCard: { backgroundColor: colors.surfaceRaised, borderRadius: 12, padding: 12, gap: 10, borderWidth: 1, borderColor: colors.border },
   feedbackTitle: { color: colors.text, fontSize: 14, fontWeight: '800' },
   feedbackCopy: { color: colors.muted, fontSize: 12, lineHeight: 18 },
@@ -261,7 +419,3 @@ const styles = StyleSheet.create({
   feedbackSave: { backgroundColor: colors.primary, borderRadius: 10, minHeight: 42, alignItems: 'center', justifyContent: 'center' },
   feedbackSaveText: { color: colors.text, fontSize: 13, fontWeight: '800' },
 });
-
-
-
-
