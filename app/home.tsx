@@ -138,15 +138,15 @@ export default function Home() {
             <Text style={styles.title}>{account?.name ?? 'Gym Tunisia'}</Text>
             <Text style={styles.subtitle}>Train, eat, and track with less friction.</Text>
           </View>
-          <View style={styles.headerActions}>
-            <SupportButton onPress={() => setShowSupportModal(true)} size="small" />
-            <Pressable accessibilityRole="button" onPress={() => router.push('/rank')} style={styles.rankButton}>
-              <Text style={styles.rankEmoji}>{tierInfo.icon}</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => router.push('/account')} style={styles.avatarButton}>
-              <Ionicons name="person-outline" size={22} color={colors.text} />
-            </Pressable>
-          </View>
+          <View style={styles.headerRight}>
+          <SupportButton onPress={() => setShowSupportModal(true)} size="small" />
+  <TouchableOpacity onPress={() => router.push('/rank')} style={styles.rankButton}>
+    <Text style={styles.rankButtonEmoji}>{currentTier.emoji}</Text>
+  </TouchableOpacity>
+  <TouchableOpacity onPress={() => router.push('/account')} style={styles.accountButton}>
+    <Ionicons name="person-circle-outline" size={32} color={colors.text} />
+  </TouchableOpacity>
+</View>
         </View>
 
         {!profile && !loading ? (
@@ -164,21 +164,24 @@ export default function Home() {
 
         {/* XP/Tier Card - New Premium Feature */}
         {profile && (
-          <Animated.View entering={SlideInUp.duration(300)} style={styles.xpCard}>
-            <View style={styles.xpHeader}>
-              <View style={[styles.tierIconContainer, { backgroundColor: `${tierInfo.color}22` }]}>
-                <Text style={styles.tierEmoji}>{tierInfo.icon}</Text>
-              </View>
-              <View style={styles.xpInfo}>
-                <View style={styles.xpTitleRow}>
-                  <Text style={styles.xpTierName}>{tierInfo.name}</Text>
-                  <Pressable onPress={() => router.push('/rank')}>
-                    <Text style={styles.xpViewAll}>View All →</Text>
-                  </Pressable>
-                </View>
-                <Text style={styles.xpTotal}>{totalXP.toLocaleString()} XP</Text>
-              </View>
-            </View>
+         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.xpCard}>
+  <View style={styles.xpHeader}>
+    <Text style={styles.xpTitle}>Your Rank</Text>
+    <TouchableOpacity onPress={() => router.push('/rank')}>
+      <Text style={styles.xpViewAll}>View All</Text>
+    </TouchableOpacity>
+  </View>
+  <View style={styles.xpContent}>
+    <Text style={styles.xpTier}>{currentTier.emoji} {currentTier.name}</Text>
+    <View style={styles.xpProgressContainer}>
+      <View style={styles.xpProgressBar} />
+    </View>
+    <Text style={styles.xpDetails}>
+      {totalXP.toLocaleString()} XP • {(xpNeededForNext - xpInCurrentTier).toLocaleString()} to next
+    </Text>
+  </View>
+</Animated.View>
+      <SupportModal visible={showSupportModal} onClose={() => setShowSupportModal(false)} />
             
             {nextTierInfo.nextTier && (
               <View style={styles.xpProgressSection}>
