@@ -97,12 +97,12 @@ export default function Home() {
         setStreak(currentStreak);
         setMeals(todayMeals);
         setWeekly(week);
-        
+
         if (xpData) {
           setTotalXP(xpData.totalXP);
           setCurrentTier(xpData.currentTier);
         }
-        
+
         if (savedProfile) {
           const generatedPlan = generatePlan(parseFloat(savedProfile.bmi), savedProfile.goal, {
             experienceLevel: savedProfile.experienceLevel,
@@ -137,7 +137,7 @@ export default function Home() {
   const caloriePercent = targets ? clampPercent((calories / targets.calories) * 100) : 0;
   const weekPercent = weekly ? clampPercent((weekly.completed / weekly.total) * 100) : 0;
   const todayIndex = new Date().getDay();
-  
+
   // XP/Ranking calculations
   const tierInfo = getTierDisplayInfo(currentTier);
   const nextTierInfo = getNextTierInfo(totalXP);
@@ -194,21 +194,21 @@ export default function Home() {
               <Text style={styles.xpTier}>{currentTier.emoji} {currentTier.name}</Text>
               <View style={styles.xpProgressContainer}>
                 <View style={styles.xpProgressBar} />
-                <View 
+                <View
                   style={[
-                    styles.xpProgressFill, 
-                    { 
+                    styles.xpProgressFill,
+                    {
                       width: `${Math.min(100, Math.max(0, xpProgressInRange))}%`,
                       backgroundColor: tierInfo.color,
                     }
-                  ]} 
+                  ]}
                 />
               </View>
               <Text style={styles.xpDetails}>
                 {totalXP.toLocaleString()} XP • {nextTierInfo.xpForNextTier ? nextTierInfo.xpForNextTier.toLocaleString() : '∞'} to next
               </Text>
             </View>
-            
+
             {nextTierInfo.nextTier && (
               <View style={styles.xpProgressSection}>
                 <View style={styles.xpProgressHeader}>
@@ -216,14 +216,14 @@ export default function Home() {
                   <Text style={styles.xpProgressNeeded}>{nextTierInfo.xpForNextTier?.toLocaleString()} XP needed</Text>
                 </View>
                 <View style={styles.xpProgressTrack}>
-                  <View 
+                  <View
                     style={[
-                      styles.xpProgressFillSmall, 
-                      { 
+                      styles.xpProgressFillSmall,
+                      {
                         width: `${Math.min(100, Math.max(0, xpProgressInRange))}%`,
                         backgroundColor: tierInfo.color,
                       }
-                    ]} 
+                    ]}
                   />
                 </View>
               </View>
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   rankButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: `${colors.primary}11`, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: `${colors.primary}33` },
   rankEmoji: { fontSize: 24 },
   avatarButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  
+
   // XP/Tier Card Styles
   xpCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: colors.border, gap: 14 },
   xpHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   xpProgressNeeded: { color: colors.muted, fontSize: 11 },
   xpProgressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.surfaceRaised, overflow: 'hidden' },
   xpProgressFill: { height: '100%', borderRadius: 4 },
-  
+
   setupCard: { backgroundColor: colors.primarySoft, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: `${colors.primary}55`, gap: 12 },
   profileCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   goalText: { color: colors.text, fontSize: 18, fontWeight: '800', textTransform: 'capitalize', marginTop: 4 },
@@ -436,5 +436,3 @@ const styles = StyleSheet.create({
   wideButton: { backgroundColor: colors.surface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
   wideButtonText: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
 });
-
-
