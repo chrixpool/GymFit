@@ -9,6 +9,7 @@ import { createAccount, getCurrentAccount, signInAccount, signOutAccount } from 
 import { getProfile } from '../lib/profile';
 import { UserAccount } from '../types/workout';
 import SupportModal, { SupportButton } from '../components/SupportModal';
+import { SupportModal, SupportButton } from '../components/SupportModal';
 
 const colors = AppTheme.colors;
 
