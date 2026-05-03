@@ -183,35 +183,42 @@ export default function Home() {
 
         {/* XP/Tier Card - New Premium Feature */}
         {profile && (
-         <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.xpCard}>
-  <View style={styles.xpHeader}>
-    <Text style={styles.xpTitle}>Your Rank</Text>
-    <TouchableOpacity onPress={() => router.push('/rank')}>
-      <Text style={styles.xpViewAll}>View All</Text>
-    </TouchableOpacity>
-  </View>
-  <View style={styles.xpContent}>
-    <Text style={styles.xpTier}>{currentTier.emoji} {currentTier.name}</Text>
-    <View style={styles.xpProgressContainer}>
-      <View style={styles.xpProgressBar} />
-    </View>
-    <Text style={styles.xpDetails}>
-      {totalXP.toLocaleString()} XP • {(xpNeededForNext - xpInCurrentTier).toLocaleString()} to next
-    </Text>
-  </View>
-</Animated.View>
-      <SupportModal visible={showSupportModal} onClose={() => setShowSupportModal(false)} />
+          <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.xpCard}>
+            <View style={styles.xpHeader}>
+              <Text style={styles.xpTitle}>Your Rank</Text>
+              <TouchableOpacity onPress={() => router.push('/rank')}>
+                <Text style={styles.xpViewAll}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.xpContent}>
+              <Text style={styles.xpTier}>{currentTier.emoji} {currentTier.name}</Text>
+              <View style={styles.xpProgressContainer}>
+                <View style={styles.xpProgressBar} />
+                <View 
+                  style={[
+                    styles.xpProgressFill, 
+                    { 
+                      width: `${Math.min(100, Math.max(0, xpProgressInRange))}%`,
+                      backgroundColor: tierInfo.color,
+                    }
+                  ]} 
+                />
+              </View>
+              <Text style={styles.xpDetails}>
+                {totalXP.toLocaleString()} XP • {nextTierInfo.xpForNextTier ? nextTierInfo.xpForNextTier.toLocaleString() : '∞'} to next
+              </Text>
+            </View>
             
             {nextTierInfo.nextTier && (
               <View style={styles.xpProgressSection}>
                 <View style={styles.xpProgressHeader}>
                   <Text style={styles.xpProgressLabel}>Progress to {nextTierInfo.nextTier}</Text>
-                  <Text style={styles.xpProgressNeeded}>{nextTierInfo.xpForNextTier?.toLocaleString()} XP</Text>
+                  <Text style={styles.xpProgressNeeded}>{nextTierInfo.xpForNextTier?.toLocaleString()} XP needed</Text>
                 </View>
                 <View style={styles.xpProgressTrack}>
                   <View 
                     style={[
-                      styles.xpProgressFill, 
+                      styles.xpProgressFillSmall, 
                       { 
                         width: `${Math.min(100, Math.max(0, xpProgressInRange))}%`,
                         backgroundColor: tierInfo.color,
