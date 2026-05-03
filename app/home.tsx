@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, router } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState, useEffect } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
+import Animated, { FadeIn, SlideInUp, FadeInDown } from 'react-native-reanimated';
 
 import { AppTheme } from '../constants/theme';
 import { getCurrentAccount } from '../lib/accounts';
@@ -11,7 +11,7 @@ import { getTodayMeals } from '../lib/nutrition';
 import { getNutritionTargets } from '../lib/nutritionEngine';
 import { getResolvedNutritionTargets } from '../lib/nutritionGoals';
 import { getProfile } from '../lib/profile';
-import { getUserXP, getTierDisplayInfo, getNextTierInfo, TIER_THRESHOLDS, Tier } from '../lib/ranking';
+import { getUserXP, getTierDisplayInfo, getNextTierInfo, TIER_THRESHOLDS, Tier, XP_REWARDS } from '../lib/ranking';
 import { getProgress, getStreak, getWeeklyProgress } from '../lib/tracking';
 import { generatePlan, isTrainingDay } from '../lib/workoutEngine';
 import { MealEntry, NutritionTargets, UserAccount, UserProfile, WeeklyProgress } from '../types/workout';
@@ -19,6 +19,15 @@ import SupportModal, { SupportButton } from '../components/SupportModal';
 
 const WEEK_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const colors = AppTheme.colors;
+
+// Streak status labels based on streak length
+function getStreakStatus(streak: number): { label: string; emoji: string; color: string } {
+  if (streak >= 30) return { label: 'Legendary', emoji: '🔥', color: colors.primary };
+  if (streak >= 14) return { label: 'On Fire', emoji: '🌟', color: colors.warning };
+  if (streak >= 7) return { label: 'Consistent', emoji: '💪', color: colors.success };
+  if (streak >= 3) return { label: 'Building', emoji: '📈', color: colors.info };
+  return { label: 'Getting Started', emoji: '🌱', color: colors.muted };
+}
 
 function getBmiCategory(bmi: number) {
   if (bmi < 18.5) return { label: 'Underweight', color: colors.info };
@@ -38,6 +47,16 @@ function clampPercent(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(value, 100));
 }
+
+// Daily mission type
+type DailyMission = {
+  id: string;
+  title: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  completed: boolean;
+  xpReward: number;
+};
 
 export default function Home() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
