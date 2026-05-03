@@ -11,7 +11,7 @@ import { getTodayMeals } from '../lib/nutrition';
 import { getNutritionTargets } from '../lib/nutritionEngine';
 import { getResolvedNutritionTargets } from '../lib/nutritionGoals';
 import { getProfile } from '../lib/profile';
-import { getUserXP, getTierDisplayInfo, getNextTierInfo, TIER_THRESHOLDS, Tier, XP_REWARDS } from '../lib/ranking';
+import { getUserXP, getTierDisplayInfo, getNextTierInfo, TIER_THRESHOLDS, Tier } from '../lib/ranking';
 import { getProgress, getStreak, getWeeklyProgress } from '../lib/tracking';
 import { generatePlan, isTrainingDay } from '../lib/workoutEngine';
 import { MealEntry, NutritionTargets, UserAccount, UserProfile, WeeklyProgress } from '../types/workout';
