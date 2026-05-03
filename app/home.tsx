@@ -3,6 +3,7 @@ import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeIn, SlideInUp } from 'react-native-reanimated';
 
 import { AppTheme } from '../constants/theme';
 import { getCurrentAccount } from '../lib/accounts';
@@ -10,9 +11,11 @@ import { getTodayMeals } from '../lib/nutrition';
 import { getNutritionTargets } from '../lib/nutritionEngine';
 import { getResolvedNutritionTargets } from '../lib/nutritionGoals';
 import { getProfile } from '../lib/profile';
+import { getUserXP, getTierDisplayInfo, getNextTierInfo, TIER_THRESHOLDS, Tier } from '../lib/ranking';
 import { getProgress, getStreak, getWeeklyProgress } from '../lib/tracking';
 import { generatePlan, isTrainingDay } from '../lib/workoutEngine';
 import { MealEntry, NutritionTargets, UserAccount, UserProfile, WeeklyProgress } from '../types/workout';
+import SupportModal, { SupportButton } from '../components/SupportModal';
 
 const WEEK_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const colors = AppTheme.colors;
@@ -44,19 +47,23 @@ export default function Home() {
   const [targets, setTargets] = useState<NutritionTargets | null>(null);
   const [weekly, setWeekly] = useState<WeeklyProgress | null>(null);
   const [loading, setLoading] = useState(true);
+  const [totalXP, setTotalXP] = useState(0);
+  const [currentTier, setCurrentTier] = useState<Tier>('Bronze');
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let alive = true;
 
       const load = async () => {
-        const [activeAccount, savedProfile, currentStreak, todayMeals, week, allProgress] = await Promise.all([
+        const [activeAccount, savedProfile, currentStreak, todayMeals, week, allProgress, xpData] = await Promise.all([
           getCurrentAccount(),
           getProfile(),
           getStreak(),
           getTodayMeals(),
           getWeeklyProgress(),
           getProgress(),
+          getUserXP(),
         ]);
 
         if (!alive) return;
@@ -71,6 +78,12 @@ export default function Home() {
         setStreak(currentStreak);
         setMeals(todayMeals);
         setWeekly(week);
+        
+        if (xpData) {
+          setTotalXP(xpData.totalXP);
+          setCurrentTier(xpData.currentTier);
+        }
+        
         if (savedProfile) {
           const generatedPlan = generatePlan(parseFloat(savedProfile.bmi), savedProfile.goal, {
             experienceLevel: savedProfile.experienceLevel,
@@ -105,49 +118,109 @@ export default function Home() {
   const caloriePercent = targets ? clampPercent((calories / targets.calories) * 100) : 0;
   const weekPercent = weekly ? clampPercent((weekly.completed / weekly.total) * 100) : 0;
   const todayIndex = new Date().getDay();
+  
+  // XP/Ranking calculations
+  const tierInfo = getTierDisplayInfo(currentTier);
+  const nextTierInfo = getNextTierInfo(totalXP);
+  const currentThreshold = TIER_THRESHOLDS[currentTier];
+  const nextThreshold = nextTierInfo.nextTier ? TIER_THRESHOLDS[nextTierInfo.nextTier as Tier] : totalXP;
+  const xpProgressInRange = nextThreshold > currentThreshold
+    ? ((totalXP - currentThreshold) / (nextThreshold - currentThreshold)) * 100
+    : 100;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Header with Support Button */}
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={styles.eyebrow}>{getGreeting()}</Text>
             <Text style={styles.title}>{account?.name ?? 'Gym Tunisia'}</Text>
             <Text style={styles.subtitle}>Train, eat, and track with less friction.</Text>
           </View>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/account')} style={styles.avatarButton}>
-            <Ionicons name="person-outline" size={22} color={colors.text} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <SupportButton onPress={() => setShowSupportModal(true)} size="small" />
+            <Pressable accessibilityRole="button" onPress={() => router.push('/rank')} style={styles.rankButton}>
+              <Text style={styles.rankEmoji}>{tierInfo.icon}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => router.push('/account')} style={styles.avatarButton}>
+              <Ionicons name="person-outline" size={22} color={colors.text} />
+            </Pressable>
+          </View>
         </View>
 
         {!profile && !loading ? (
-          <View style={styles.setupCard}>
-            <Text style={styles.cardTitle}>Build your first plan</Text>
-            <Text style={styles.cardCopy}>Add your stats once and the app will tune workouts and nutrition targets around your goal.</Text>
-            <Pressable accessibilityRole="button" onPress={() => router.replace('/onboarding')} style={styles.primaryButton}>
-              <Ionicons name="create-outline" size={18} color={colors.text} />
-              <Text style={styles.primaryButtonText}>Set up profile</Text>
-            </Pressable>
-          </View>
+          <Animated.View entering={FadeIn.duration(300)}>
+            <View style={styles.setupCard}>
+              <Text style={styles.cardTitle}>Build your first plan</Text>
+              <Text style={styles.cardCopy}>Add your stats once and the app will tune workouts and nutrition targets around your goal.</Text>
+              <Pressable accessibilityRole="button" onPress={() => router.replace('/onboarding')} style={styles.primaryButton}>
+                <Ionicons name="create-outline" size={18} color={colors.text} />
+                <Text style={styles.primaryButtonText}>Set up profile</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
         ) : null}
+
+        {/* XP/Tier Card - New Premium Feature */}
+        {profile && (
+          <Animated.View entering={SlideInUp.duration(300)} style={styles.xpCard}>
+            <View style={styles.xpHeader}>
+              <View style={[styles.tierIconContainer, { backgroundColor: `${tierInfo.color}22` }]}>
+                <Text style={styles.tierEmoji}>{tierInfo.icon}</Text>
+              </View>
+              <View style={styles.xpInfo}>
+                <View style={styles.xpTitleRow}>
+                  <Text style={styles.xpTierName}>{tierInfo.name}</Text>
+                  <Pressable onPress={() => router.push('/rank')}>
+                    <Text style={styles.xpViewAll}>View All →</Text>
+                  </Pressable>
+                </View>
+                <Text style={styles.xpTotal}>{totalXP.toLocaleString()} XP</Text>
+              </View>
+            </View>
+            
+            {nextTierInfo.nextTier && (
+              <View style={styles.xpProgressSection}>
+                <View style={styles.xpProgressHeader}>
+                  <Text style={styles.xpProgressLabel}>Progress to {nextTierInfo.nextTier}</Text>
+                  <Text style={styles.xpProgressNeeded}>{nextTierInfo.xpForNextTier?.toLocaleString()} XP</Text>
+                </View>
+                <View style={styles.xpProgressTrack}>
+                  <View 
+                    style={[
+                      styles.xpProgressFill, 
+                      { 
+                        width: `${Math.min(100, Math.max(0, xpProgressInRange))}%`,
+                        backgroundColor: tierInfo.color,
+                      }
+                    ]} 
+                  />
+                </View>
+              </View>
+            )}
+          </Animated.View>
+        )}
 
         {profile && bmiCategory ? (
-          <View style={styles.profileCard}>
-            <View>
-              <Text style={styles.eyebrow}>Current goal</Text>
-              <Text style={styles.goalText}>{profile.goal}</Text>
+          <Animated.View entering={SlideInUp.delay(50).duration(300)}>
+            <View style={styles.profileCard}>
+              <View>
+                <Text style={styles.eyebrow}>Current goal</Text>
+                <Text style={styles.goalText}>{profile.goal}</Text>
+              </View>
+              <View style={[styles.bmiTag, { borderColor: bmiCategory.color }]}>
+                <Text style={[styles.bmiValue, { color: bmiCategory.color }]}>BMI {profile.bmi}</Text>
+                <Text style={[styles.bmiLabel, { color: bmiCategory.color }]}>{bmiCategory.label}</Text>
+              </View>
             </View>
-            <View style={[styles.bmiTag, { borderColor: bmiCategory.color }]}>
-              <Text style={[styles.bmiValue, { color: bmiCategory.color }]}>BMI {profile.bmi}</Text>
-              <Text style={[styles.bmiLabel, { color: bmiCategory.color }]}>{bmiCategory.label}</Text>
-            </View>
-          </View>
+          </Animated.View>
         ) : null}
 
-        <View style={styles.metricGrid}>
+        <Animated.View entering={SlideInUp.delay(100).duration(300)} style={styles.metricGrid}>
           <MetricCard icon="flame-outline" label="Streak" value={`${streak}`} detail="days" color={colors.primary} />
           <MetricCard icon="calendar-outline" label="This week" value={`${weekly?.completed ?? 0}/${weekly?.total ?? 7}`} detail="sessions" color={colors.success} />
-        </View>
+        </Animated.View>
 
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -212,6 +285,9 @@ export default function Home() {
           <Text style={styles.wideButtonText}>Progress dashboard</Text>
           <Ionicons name="chevron-forward" size={18} color={colors.subtle} />
         </Pressable>
+
+        {/* Support Modal */}
+        <SupportModal visible={showSupportModal} onClose={() => setShowSupportModal(false)} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -263,12 +339,33 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 36, gap: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   headerText: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   eyebrow: { color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
   title: { color: colors.text, fontSize: 32, fontWeight: '800', marginTop: 4 },
   subtitle: { color: colors.muted, fontSize: 14, lineHeight: 20, marginTop: 4 },
+  rankButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: `${colors.primary}11`, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: `${colors.primary}33` },
+  rankEmoji: { fontSize: 24 },
   avatarButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  
+  // XP/Tier Card Styles
+  xpCard: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: colors.border, gap: 14 },
+  xpHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  tierIconContainer: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  tierEmoji: { fontSize: 32 },
+  xpInfo: { flex: 1 },
+  xpTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  xpTierName: { color: colors.text, fontSize: 20, fontWeight: '800' },
+  xpViewAll: { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  xpTotal: { color: colors.muted, fontSize: 14, marginTop: 2 },
+  xpProgressSection: { gap: 8, marginTop: 4 },
+  xpProgressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  xpProgressLabel: { color: colors.text, fontSize: 13, fontWeight: '600' },
+  xpProgressNeeded: { color: colors.muted, fontSize: 11 },
+  xpProgressTrack: { height: 8, borderRadius: 4, backgroundColor: colors.surfaceRaised, overflow: 'hidden' },
+  xpProgressFill: { height: '100%', borderRadius: 4 },
+  
   setupCard: { backgroundColor: colors.primarySoft, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: `${colors.primary}55`, gap: 12 },
   profileCard: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   goalText: { color: colors.text, fontSize: 18, fontWeight: '800', textTransform: 'capitalize', marginTop: 4 },
