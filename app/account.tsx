@@ -8,6 +8,7 @@ import { AppTheme } from '../constants/theme';
 import { createAccount, getCurrentAccount, signInAccount, signOutAccount } from '../lib/accounts';
 import { getProfile } from '../lib/profile';
 import { UserAccount } from '../types/workout';
+import SupportModal, { SupportButton } from '../components/SupportModal';
 
 const colors = AppTheme.colors;
 
@@ -22,6 +23,7 @@ export default function Account() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   const load = useCallback(async () => {
     setCurrentAccount(await getCurrentAccount());
@@ -116,6 +118,12 @@ export default function Account() {
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={styles.keyboard} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Header with Support Button */}
+          <View style={styles.headerRow}>
+            <Text style={styles.pageTitle}>Account</Text>
+            <SupportButton onPress={() => setShowSupportModal(true)} size="medium" />
+          </View>
+
           <View style={styles.hero}>
             <View style={styles.heroIcon}>
               <Ionicons name="shield-checkmark-outline" size={26} color={colors.text} />
@@ -169,6 +177,9 @@ export default function Account() {
               <Text style={styles.primaryButtonText}>{loading ? 'Working...' : mode === 'signUp' ? 'Create account' : 'Sign in'}</Text>
             </Pressable>
           </View>
+
+          {/* Support Modal */}
+          <SupportModal visible={showSupportModal} onClose={() => setShowSupportModal(false)} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -221,6 +232,8 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   keyboard: { flex: 1 },
   content: { padding: 20, paddingBottom: 36, gap: 16 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  pageTitle: { color: colors.text, fontSize: 28, fontWeight: '800' },
   hero: { backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: colors.border, gap: 12 },
   heroIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   title: { color: colors.text, fontSize: 30, fontWeight: '800', lineHeight: 36 },
