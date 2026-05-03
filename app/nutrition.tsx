@@ -5,7 +5,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import type { KeyboardTypeOptions } from 'react-native';
 
 import { AppTheme } from '../constants/theme';
-import { getBudgetMealIdeas, MEAL_CATEGORY_LABELS, MEAL_TEMPLATES, TunisianMealCategory, TunisianMealTemplate } from '../data/meals';
+import { filterMealsByCategory, filterMealsByOrigin, getBudgetMealIdeas, getInternationalMealIdeas, MEAL_CATEGORY_LABELS, MEAL_TEMPLATES, MealCategory, MealTemplate } from '../data/meals';
 import { FoodLookupResult, lookupFoodNutrition } from '../lib/foodLookup';
 import { addMeal, addQuickMeal, deleteMeal, getTodayMeals, updateMeal } from '../lib/nutrition';
 import { getNutritionStrategy, getNutritionTargets } from '../lib/nutritionEngine';
@@ -39,9 +39,10 @@ export default function Nutrition() {
   const [targetError, setTargetError] = useState('');
   const [error, setError] = useState('');
   const [profileGoal, setProfileGoal] = useState<'lose weight' | 'gain muscle' | 'maintain' | 'body strength'>('maintain');
-  const [mealCategory, setMealCategory] = useState<TunisianMealCategory | 'all'>('all');
+  const [mealCategory, setMealCategory] = useState<MealCategory | 'all' | 'tunisian' | 'international'>('all');
   const [budgetDraft, setBudgetDraft] = useState('10');
-  const [budgetIdeas, setBudgetIdeas] = useState<TunisianMealTemplate[]>([]);
+  const [budgetIdeas, setBudgetIdeas] = useState<MealTemplate[]>([]);
+  const [originFilter, setOriginFilter] = useState<'all' | 'Tunisia' | 'International'>('all');
 
   const load = useCallback(async () => {
     const [todayMeals, profile, weeklyProgress, progress] = await Promise.all([getTodayMeals(), getProfile(), getWeeklyProgress(), getProgress()]);
@@ -196,12 +197,33 @@ export default function Nutrition() {
   };
 
   const percent = targets ? Math.min(100, Math.round((totals.calories / targets.calories) * 100)) : 0;
-  const visibleTemplates = MEAL_TEMPLATES.filter((meal) => mealCategory === 'all' || meal.category === mealCategory);
-
+  
   const handleBudgetIdeas = () => {
     const parsedBudget = Number.parseFloat(budgetDraft);
-    setBudgetIdeas(getBudgetMealIdeas(Number.isFinite(parsedBudget) ? parsedBudget : 0, profileGoal));
+    if (originFilter === 'Tunisia' || originFilter === 'all') {
+      setBudgetIdeas(getBudgetMealIdeas(Number.isFinite(parsedBudget) ? parsedBudget : 0, profileGoal));
+    } else {
+      setBudgetIdeas(getInternationalMealIdeas(Number.isFinite(parsedBudget) ? parsedBudget : 0, profileGoal));
+    }
   };
+
+  const getVisibleTemplates = () => {
+    let meals = MEAL_TEMPLATES;
+    
+    // First filter by origin
+    if (originFilter !== 'all') {
+      meals = filterMealsByOrigin(originFilter);
+    }
+    
+    // Then filter by category if it's not 'all', 'tunisian', or 'international'
+    if (mealCategory !== 'all' && mealCategory !== 'tunisian' && mealCategory !== 'international') {
+      meals = filterMealsByCategory(mealCategory);
+    }
+    
+    return meals;
+  };
+  
+  const visibleTemplates = getVisibleTemplates();
 
   return (
     <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -262,21 +284,32 @@ export default function Nutrition() {
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderText}>
-            <Text style={styles.cardTitle}>Tunisian meal engine</Text>
-            <Text style={styles.cardCopy}>Cheap bulking, Ramadan, and street-food macros built for local habits.</Text>
+            <Text style={styles.cardTitle}>Meal library</Text>
+            <Text style={styles.cardCopy}>Tunisian favorites and international options for every goal.</Text>
           </View>
-          <Text style={styles.badge}>DT</Text>
         </View>
+        
+        {/* Origin Filter */}
         <View style={styles.segmentedControl}>
-          {(Object.keys(MEAL_CATEGORY_LABELS) as (TunisianMealCategory | 'all')[]).map((item) => (
-            <Pressable key={item} accessibilityRole="button" onPress={() => setMealCategory(item)} style={[styles.segment, mealCategory === item && styles.segmentActive]}>
-              <Text style={[styles.segmentText, mealCategory === item && styles.segmentTextActive]}>{MEAL_CATEGORY_LABELS[item]}</Text>
+          {(['all', 'Tunisia', 'International'] as const).map((item) => (
+            <Pressable key={item} accessibilityRole="button" onPress={() => setOriginFilter(item)} style={[styles.segment, originFilter === item && styles.segmentActive]}>
+              <Text style={[styles.segmentText, originFilter === item && styles.segmentTextActive]}>{item === 'all' ? 'All' : item}</Text>
             </Pressable>
           ))}
         </View>
+        
+        {/* Category Filter */}
+        <View style={styles.categoryScroll}>
+          {(Object.keys(MEAL_CATEGORY_LABELS) as (MealCategory | 'all' | 'tunisian' | 'international')[]).map((item) => (
+            <Pressable key={item} accessibilityRole="button" onPress={() => setMealCategory(item)} style={[styles.categoryChip, mealCategory === item && styles.categoryChipActive]}>
+              <Text style={[styles.categoryChipText, mealCategory === item && styles.categoryChipTextActive]}>{MEAL_CATEGORY_LABELS[item]}</Text>
+            </Pressable>
+          ))}
+        </View>
+        
         <View style={styles.budgetRow}>
           <View style={styles.budgetField}>
-            <Field label="Budget" placeholder="10 DT" value={budgetDraft} onChangeText={setBudgetDraft} keyboardType="decimal-pad" />
+            <Field label={originFilter === 'International' ? 'Budget (USD)' : 'Budget (DT)'} placeholder={originFilter === 'International' ? '10 USD' : '10 DT'} value={budgetDraft} onChangeText={setBudgetDraft} keyboardType="decimal-pad" />
           </View>
           <Pressable accessibilityRole="button" onPress={handleBudgetIdeas} style={styles.budgetButton}>
             <Ionicons name="sparkles-outline" size={18} color={colors.text} />
@@ -296,7 +329,7 @@ export default function Nutrition() {
                 style={styles.ideaCard}
               >
                 <Text style={styles.ideaName}>{meal.name}</Text>
-                <Text style={styles.ideaMeta}>{meal.costDinars} DT | {meal.protein}g protein</Text>
+                <Text style={styles.ideaMeta}>{meal.origin === 'International' ? `$${meal.costUSD}` : `${meal.costDinars} DT`} | {meal.protein}g protein</Text>
               </Pressable>
             ))}
           </View>
@@ -315,7 +348,7 @@ export default function Nutrition() {
             >
               <Text style={styles.templateName}>{meal.name}</Text>
               <Text style={styles.templateMeta}>{meal.calories} kcal | P {meal.protein}g | C {meal.carbs}g | F {meal.fat}g</Text>
-              <Text style={styles.templateTags}>{meal.costDinars} DT | {meal.tags.join(' | ')}</Text>
+              <Text style={styles.templateTags}>{meal.origin === 'International' ? `$${meal.costUSD}` : `${meal.costDinars} DT`} | {meal.tags.join(' | ')}</Text>
             </Pressable>
           ))}
         </View>
@@ -480,6 +513,11 @@ const styles = StyleSheet.create({
   segmentActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   segmentText: { color: colors.muted, fontSize: 12, fontWeight: '800', textTransform: 'capitalize' },
   segmentTextActive: { color: colors.text },
+  categoryScroll: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  categoryChip: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: colors.input, borderWidth: 1, borderColor: colors.border },
+  categoryChipActive: { backgroundColor: colors.info, borderColor: colors.info },
+  categoryChipText: { color: colors.muted, fontSize: 11, fontWeight: '700' },
+  categoryChipTextActive: { color: colors.text },
   inputRow: { flexDirection: 'row', gap: 10 },
   buttonRow: { flexDirection: 'row', gap: 10 },
   fieldWrap: { flex: 1, gap: 6 },
