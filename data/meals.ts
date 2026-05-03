@@ -1,21 +1,26 @@
 import { Goal, MealType } from '../types/workout';
 
 export type TunisianMealCategory = 'cheap-bulking' | 'ramadan' | 'street-food' | 'everyday';
+export type InternationalMealCategory = 'high-protein' | 'quick-meals' | 'budget-friendly' | 'healthy' | 'vegetarian' | 'vegan' | 'low-carb' | 'mediterranean';
+export type MealCategory = TunisianMealCategory | InternationalMealCategory;
 
-export type TunisianMealTemplate = {
+export type MealTemplate = {
   name: string;
   type: MealType;
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
-  category: TunisianMealCategory;
-  costDinars: number;
+  category: MealCategory;
+  costDinars?: number;
+  costUSD?: number;
   tags: string[];
   bestFor: Goal[];
+  origin?: 'Tunisia' | 'International';
 };
 
-export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
+export const MEAL_TEMPLATES: MealTemplate[] = [
+  // Tunisian Meals
   {
     name: 'Tuna sandwich',
     type: 'lunch',
@@ -27,6 +32,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 6,
     tags: ['quick', 'high protein'],
     bestFor: ['lose weight', 'maintain', 'gain muscle'],
+    origin: 'Tunisia',
   },
   {
     name: 'Ojja eggs',
@@ -39,6 +45,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 5,
     tags: ['low carb', 'home'],
     bestFor: ['lose weight', 'maintain'],
+    origin: 'Tunisia',
   },
   {
     name: 'Lablabi bowl',
@@ -51,6 +58,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 4,
     tags: ['street food', 'fiber'],
     bestFor: ['gain muscle', 'maintain', 'body strength'],
+    origin: 'Tunisia',
   },
   {
     name: 'Greek yogurt and dates',
@@ -63,6 +71,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 4,
     tags: ['iftar', 'snack'],
     bestFor: ['lose weight', 'maintain'],
+    origin: 'Tunisia',
   },
   {
     name: 'Makrouna tuna and harissa',
@@ -75,6 +84,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 7,
     tags: ['cheap bulking', 'high carb'],
     bestFor: ['gain muscle', 'body strength'],
+    origin: 'Tunisia',
   },
   {
     name: 'Rice, eggs, and olive oil',
@@ -87,6 +97,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 5,
     tags: ['budget', 'home'],
     bestFor: ['gain muscle', 'body strength'],
+    origin: 'Tunisia',
   },
   {
     name: 'Bsissa milk shake',
@@ -99,6 +110,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 4,
     tags: ['budget', 'drink'],
     bestFor: ['gain muscle', 'body strength'],
+    origin: 'Tunisia',
   },
   {
     name: 'Shorba frik and chicken',
@@ -111,6 +123,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 6,
     tags: ['iftar', 'warm meal'],
     bestFor: ['lose weight', 'maintain', 'gain muscle'],
+    origin: 'Tunisia',
   },
   {
     name: 'Brik egg and tuna',
@@ -123,6 +136,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 4,
     tags: ['iftar', 'street food'],
     bestFor: ['maintain', 'gain muscle'],
+    origin: 'Tunisia',
   },
   {
     name: 'Sahri oats, milk, dates',
@@ -135,6 +149,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 5,
     tags: ['suhoor', 'slow carbs'],
     bestFor: ['gain muscle', 'body strength', 'maintain'],
+    origin: 'Tunisia',
   },
   {
     name: 'Fricasse tuna',
@@ -147,6 +162,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 3,
     tags: ['street food', 'fast'],
     bestFor: ['gain muscle', 'maintain'],
+    origin: 'Tunisia',
   },
   {
     name: 'Kafteji plate',
@@ -159,6 +175,7 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 5,
     tags: ['street food', 'high fat'],
     bestFor: ['gain muscle', 'body strength'],
+    origin: 'Tunisia',
   },
   {
     name: 'Grilled chicken mlewi',
@@ -171,20 +188,329 @@ export const MEAL_TEMPLATES: TunisianMealTemplate[] = [
     costDinars: 8,
     tags: ['street food', 'high protein'],
     bestFor: ['gain muscle', 'maintain', 'body strength'],
+    origin: 'Tunisia',
+  },
+  // International High-Protein Meals
+  {
+    name: 'Grilled chicken breast with quinoa',
+    type: 'lunch',
+    calories: 520,
+    protein: 48,
+    carbs: 42,
+    fat: 14,
+    category: 'high-protein',
+    costUSD: 8,
+    tags: ['lean protein', 'whole grains'],
+    bestFor: ['gain muscle', 'lose weight', 'maintain'],
+    origin: 'International',
+  },
+  {
+    name: 'Salmon with sweet potato',
+    type: 'dinner',
+    calories: 580,
+    protein: 42,
+    carbs: 38,
+    fat: 24,
+    category: 'high-protein',
+    costUSD: 12,
+    tags: ['omega-3', 'complex carbs'],
+    bestFor: ['gain muscle', 'maintain', 'body strength'],
+    origin: 'International',
+  },
+  {
+    name: 'Turkey and avocado wrap',
+    type: 'lunch',
+    calories: 480,
+    protein: 36,
+    carbs: 32,
+    fat: 18,
+    category: 'high-protein',
+    costUSD: 7,
+    tags: ['quick', 'balanced'],
+    bestFor: ['lose weight', 'maintain', 'gain muscle'],
+    origin: 'International',
+  },
+  {
+    name: 'Greek chicken bowl',
+    type: 'lunch',
+    calories: 540,
+    protein: 44,
+    carbs: 46,
+    fat: 16,
+    category: 'mediterranean',
+    costUSD: 9,
+    tags: ['mediterranean', 'high protein'],
+    bestFor: ['gain muscle', 'maintain', 'lose weight'],
+    origin: 'International',
+  },
+  // Quick Meals
+  {
+    name: 'Protein smoothie with banana',
+    type: 'snack',
+    calories: 320,
+    protein: 32,
+    carbs: 38,
+    fat: 6,
+    category: 'quick-meals',
+    costUSD: 4,
+    tags: ['post-workout', 'fast'],
+    bestFor: ['gain muscle', 'maintain', 'body strength'],
+    origin: 'International',
+  },
+  {
+    name: 'Egg white omelette with spinach',
+    type: 'breakfast',
+    calories: 280,
+    protein: 28,
+    carbs: 12,
+    fat: 8,
+    category: 'quick-meals',
+    costUSD: 5,
+    tags: ['low calorie', 'quick'],
+    bestFor: ['lose weight', 'maintain'],
+    origin: 'International',
+  },
+  {
+    name: 'Tuna salad with mixed greens',
+    type: 'lunch',
+    calories: 340,
+    protein: 34,
+    carbs: 14,
+    fat: 12,
+    category: 'quick-meals',
+    costUSD: 6,
+    tags: ['low carb', 'fast'],
+    bestFor: ['lose weight', 'maintain'],
+    origin: 'International',
+  },
+  // Budget-Friendly International
+  {
+    name: 'Chicken and rice bowl',
+    type: 'lunch',
+    calories: 620,
+    protein: 42,
+    carbs: 72,
+    fat: 14,
+    category: 'budget-friendly',
+    costUSD: 5,
+    tags: ['meal prep', 'filling'],
+    bestFor: ['gain muscle', 'body strength', 'maintain'],
+    origin: 'International',
+  },
+  {
+    name: 'Lentil soup with whole wheat bread',
+    type: 'dinner',
+    calories: 420,
+    protein: 22,
+    carbs: 68,
+    fat: 8,
+    category: 'budget-friendly',
+    costUSD: 3,
+    tags: ['plant protein', 'fiber'],
+    bestFor: ['lose weight', 'maintain', 'gain muscle'],
+    origin: 'International',
+  },
+  {
+    name: 'Peanut butter banana toast',
+    type: 'breakfast',
+    calories: 380,
+    protein: 14,
+    carbs: 48,
+    fat: 16,
+    category: 'budget-friendly',
+    costUSD: 2,
+    tags: ['quick', 'energy'],
+    bestFor: ['maintain', 'gain muscle'],
+    origin: 'International',
+  },
+  // Healthy Options
+  {
+    name: 'Quinoa Buddha bowl',
+    type: 'lunch',
+    calories: 480,
+    protein: 18,
+    carbs: 64,
+    fat: 18,
+    category: 'healthy',
+    costUSD: 9,
+    tags: ['plant-based', 'nutrient dense'],
+    bestFor: ['lose weight', 'maintain', 'body strength'],
+    origin: 'International',
+  },
+  {
+    name: 'Grilled fish with asparagus',
+    type: 'dinner',
+    calories: 380,
+    protein: 38,
+    carbs: 12,
+    fat: 16,
+    category: 'healthy',
+    costUSD: 11,
+    tags: ['low carb', 'lean'],
+    bestFor: ['lose weight', 'maintain'],
+    origin: 'International',
+  },
+  // Vegetarian Options
+  {
+    name: 'Chickpea curry with brown rice',
+    type: 'dinner',
+    calories: 520,
+    protein: 18,
+    carbs: 78,
+    fat: 14,
+    category: 'vegetarian',
+    costUSD: 6,
+    tags: ['plant protein', 'spicy'],
+    bestFor: ['maintain', 'gain muscle', 'lose weight'],
+    origin: 'International',
+  },
+  {
+    name: 'Tofu stir-fry with vegetables',
+    type: 'lunch',
+    calories: 420,
+    protein: 24,
+    carbs: 38,
+    fat: 18,
+    category: 'vegetarian',
+    costUSD: 7,
+    tags: ['plant protein', 'low calorie'],
+    bestFor: ['lose weight', 'maintain', 'gain muscle'],
+    origin: 'International',
+  },
+  {
+    name: 'Cottage cheese with berries',
+    type: 'snack',
+    calories: 240,
+    protein: 22,
+    carbs: 24,
+    fat: 6,
+    category: 'vegetarian',
+    costUSD: 4,
+    tags: ['high protein', 'antioxidants'],
+    bestFor: ['lose weight', 'maintain', 'gain muscle'],
+    origin: 'International',
+  },
+  // Vegan Options
+  {
+    name: 'Tempeh and vegetable stir-fry',
+    type: 'dinner',
+    calories: 460,
+    protein: 26,
+    carbs: 48,
+    fat: 16,
+    category: 'vegan',
+    costUSD: 8,
+    tags: ['plant protein', 'whole foods'],
+    bestFor: ['gain muscle', 'maintain', 'lose weight'],
+    origin: 'International',
+  },
+  {
+    name: 'Black bean and avocado bowl',
+    type: 'lunch',
+    calories: 520,
+    protein: 18,
+    carbs: 62,
+    fat: 22,
+    category: 'vegan',
+    costUSD: 7,
+    tags: ['fiber', 'healthy fats'],
+    bestFor: ['maintain', 'gain muscle', 'body strength'],
+    origin: 'International',
+  },
+  // Low-Carb Options
+  {
+    name: 'Zucchini noodles with chicken',
+    type: 'dinner',
+    calories: 340,
+    protein: 36,
+    carbs: 14,
+    fat: 14,
+    category: 'low-carb',
+    costUSD: 9,
+    tags: ['keto-friendly', 'low calorie'],
+    bestFor: ['lose weight', 'maintain'],
+    origin: 'International',
+  },
+  {
+    name: 'Steak with broccoli',
+    type: 'dinner',
+    calories: 480,
+    protein: 46,
+    carbs: 12,
+    fat: 24,
+    category: 'low-carb',
+    costUSD: 14,
+    tags: ['high protein', 'keto'],
+    bestFor: ['gain muscle', 'lose weight', 'body strength'],
+    origin: 'International',
+  },
+  // Mediterranean Diet
+  {
+    name: 'Falafel plate with hummus',
+    type: 'lunch',
+    calories: 540,
+    protein: 18,
+    carbs: 62,
+    fat: 24,
+    category: 'mediterranean',
+    costUSD: 8,
+    tags: ['plant-based', 'fiber'],
+    bestFor: ['maintain', 'lose weight', 'gain muscle'],
+    origin: 'International',
+  },
+  {
+    name: 'Shrimp and olive salad',
+    type: 'lunch',
+    calories: 380,
+    protein: 32,
+    carbs: 18,
+    fat: 20,
+    category: 'mediterranean',
+    costUSD: 11,
+    tags: ['lean protein', 'healthy fats'],
+    bestFor: ['lose weight', 'maintain', 'gain muscle'],
+    origin: 'International',
   },
 ];
 
-export const MEAL_CATEGORY_LABELS: Record<TunisianMealCategory | 'all', string> = {
+export const MEAL_CATEGORY_LABELS: Record<MealCategory | 'all' | 'tunisian' | 'international', string> = {
   all: 'All',
+  tunisian: 'Tunisian',
+  international: 'International',
   everyday: 'Everyday',
   'cheap-bulking': 'Cheap bulking',
   ramadan: 'Ramadan',
   'street-food': 'Street macros',
+  'high-protein': 'High protein',
+  'quick-meals': 'Quick meals',
+  'budget-friendly': 'Budget friendly',
+  healthy: 'Healthy',
+  vegetarian: 'Vegetarian',
+  vegan: 'Vegan',
+  'low-carb': 'Low carb',
+  mediterranean: 'Mediterranean',
 };
 
 export const getBudgetMealIdeas = (budgetDinars: number, goal: Goal) => {
   return MEAL_TEMPLATES
-    .filter((meal) => meal.costDinars <= budgetDinars && meal.bestFor.includes(goal))
-    .sort((a, b) => (b.protein / Math.max(1, b.costDinars)) - (a.protein / Math.max(1, a.costDinars)))
+    .filter((meal) => meal.costDinars !== undefined && meal.costDinars <= budgetDinars && meal.bestFor.includes(goal))
+    .sort((a, b) => (b.protein / Math.max(1, b.costDinars!)) - (a.protein / Math.max(1, a.costDinars!)))
     .slice(0, 4);
+};
+
+export const getInternationalMealIdeas = (budgetUSD: number, goal: Goal) => {
+  return MEAL_TEMPLATES
+    .filter((meal) => meal.costUSD !== undefined && meal.costUSD <= budgetUSD && meal.bestFor.includes(goal))
+    .sort((a, b) => (b.protein / Math.max(1, b.costUSD!)) - (a.protein / Math.max(1, a.costUSD!)))
+    .slice(0, 4);
+};
+
+export const filterMealsByOrigin = (origin: 'all' | 'Tunisia' | 'International') => {
+  if (origin === 'all') return MEAL_TEMPLATES;
+  return MEAL_TEMPLATES.filter((meal) => meal.origin === origin);
+};
+
+export const filterMealsByCategory = (category: MealCategory | 'all') => {
+  if (category === 'all') return MEAL_TEMPLATES;
+  return MEAL_TEMPLATES.filter((meal) => meal.category === category);
 };
